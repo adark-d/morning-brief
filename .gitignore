@@ -15,3 +15,7 @@ wheels/
 .env.*.local
 *.key
 *.pem
+
+# Claude Code local cache (CLAUDE.md itself IS tracked)
+.claude/
+CLAUDE.md
