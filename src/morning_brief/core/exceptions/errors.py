@@ -107,6 +107,19 @@ class CorruptRecordError(StorageError):
     """A stored audit record could not be parsed back into a BriefRun."""
 
 
+# Prompts
+class PromptError(BriefSystemError):
+    """Errors in the prompt layer (registry, builder, validation)."""
+
+
+class PromptNotFoundError(PromptError):
+    """A prompt component was not found for the requested name and version."""
+
+
+class IncompletePromptError(PromptError):
+    """An assembled prompt is missing a required component."""
+
+
 # Configuration
 class ConfigError(BriefSystemError):
     """Errors during configuration loading or validation."""

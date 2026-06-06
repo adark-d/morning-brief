@@ -1,0 +1,12 @@
+name: brief_schema
+version: v1.0
+description: |
+  Return a JSON object with exactly these fields:
+    - headline: string, 10-150 chars. The single most important overnight development.
+    - yield_curve_summary: string, 20-300 chars. Curve shape and the signal for the day.
+    - key_signals: array of 2-5 short strings. The most important signals from the data.
+    - macro_context: string, 20-400 chars. How oil, the dollar, and risk sentiment
+      connect to fixed income.
+    - watch_today: array of 2-3 short strings. Specific things to monitor this session.
+    - full_narrative: string, 150-500 words. The complete morning brief.
+    - confidence: number between 0.0 and 1.0, reflecting data completeness and certainty.

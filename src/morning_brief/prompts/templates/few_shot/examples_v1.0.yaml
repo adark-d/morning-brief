@@ -1,0 +1,15 @@
+name: examples
+version: v1.0
+examples:
+  - input: |
+      10Y 4.42, 2Y 4.95; VIX 14.5, WTI 78.2, dollar index 104.8; all sources succeeded.
+    output: |
+      headline: "Curve stays inverted as the front end holds rich ahead of CPI."
+      key_signals: ["2s10s inversion near -53bps", "VIX subdued — calm risk tone"]
+      watch_today: ["US CPI at 13:30 GMT", "30Y auction at 18:00 GMT"]
+  - input: |
+      10Y 4.42, 30Y 4.61; FX feed unavailable this morning.
+    output: |
+      headline: "Long end steady; FX data unavailable, limiting the cross-asset read."
+      key_signals: ["30Y holds at 4.61%", "FX section incomplete — flagged"]
+      watch_today: ["Restored FX feed", "Any long-end supply"]

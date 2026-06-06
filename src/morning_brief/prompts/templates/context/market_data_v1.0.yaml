@@ -1,0 +1,16 @@
+name: market_data
+version: v1.0
+template: |
+  Market data captured at {timestamp}.
+
+  Treasury yields (% by maturity):
+  {yields_block}
+
+  Instruments:
+  {instruments_block}
+
+  FX rates:
+  {fx_block}
+
+  Data quality: {succeeded} of {attempted} sources succeeded (stale={is_stale}).
+  Produce today's brief from this data only.
