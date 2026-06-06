@@ -19,12 +19,13 @@ llm:
   max_retries: 1
 
 delivery:
-  channel: email
-  smtp_host: localhost
-  smtp_port: 587
-  smtp_from: noreply@example.com
+  channels: [email]
   duplicate_prevention_enabled: true
-  # recipients populated by env var: MORNING_BRIEF_DELIVERY__RECIPIENTS
+  email:
+    smtp_host: localhost
+    smtp_port: 587
+    smtp_from: noreply@example.com
+    # recipients populated by env var: MORNING_BRIEF_DELIVERY__EMAIL__RECIPIENTS
 
 prompt:
   system_prompt_name: senior_analyst

@@ -16,9 +16,10 @@ llm:
   max_retries: 0
 
 delivery:
-  channel: mock
-  smtp_host: mock
-  smtp_from: test@mock
+  channels: [mock]
+  email:
+    smtp_host: mock
+    smtp_from: test@mock
 
 audit:
   backend: json

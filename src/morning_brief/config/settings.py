@@ -71,17 +71,30 @@ class LLMSettings(BaseSettings):
     openai_api_key: SecretStr | None = None
 
 
-class DeliverySettings(BaseSettings):
-    """Configuration for the delivery layer."""
+class EmailChannelSettings(BaseSettings):
+    """SMTP configuration for the email delivery channel."""
 
-    channel: Annotated[str, Field(description="Delivery channel, e.g. 'email', 'slack'")] = "email"
     recipients: tuple[str, ...] = ()
     smtp_host: str = "localhost"
     smtp_port: Annotated[int, Field(gt=0, le=65535)] = 587
     smtp_username: SecretStr | None = None
     smtp_password: SecretStr | None = None
     smtp_from: str = "noreply@example.com"
+    start_tls: bool = True
+    timeout_seconds: Annotated[float, Field(gt=0, le=120)] = 30.0
+
+
+class DeliverySettings(BaseSettings):
+    """Configuration for the delivery layer.
+
+    `channels` lists the active delivery channels; each channel has its own nested
+    config block. Adding a channel (e.g. Slack) is additive: append its name here
+    and add a matching settings block — no existing channel is touched.
+    """
+
+    channels: tuple[str, ...] = ("email",)
     duplicate_prevention_enabled: bool = True
+    email: EmailChannelSettings = Field(default_factory=EmailChannelSettings)
 
 
 class PromptSettings(BaseSettings):

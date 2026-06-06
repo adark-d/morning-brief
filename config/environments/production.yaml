@@ -10,9 +10,10 @@ llm:
   max_retries: 1
 
 delivery:
-  channel: email
+  channels: [email]
   duplicate_prevention_enabled: true
-  # smtp_host, smtp_port, smtp_from injected via env vars
+  # email.smtp_host, email.smtp_port, email.smtp_from injected via env vars,
+  # e.g. MORNING_BRIEF_DELIVERY__EMAIL__SMTP_HOST
 
 audit:
   backend: postgres

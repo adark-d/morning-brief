@@ -9,9 +9,10 @@ llm:
   timeout_seconds: 60.0       # be generous locally
 
 delivery:
-  channel: email
-  smtp_host: localhost
-  smtp_from: dev@local
+  channels: [email]
+  email:
+    smtp_host: localhost
+    smtp_from: dev@local
 
 audit:
   backend: json
