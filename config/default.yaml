@@ -41,6 +41,8 @@ guardrails:
   yield_min_pct: 0.1
   yield_max_pct: 20.0
   min_yield_maturities_required: 3
+  staleness_warn_after_hours: 6.0     # WARNING past this; CRITICAL past reject
+  staleness_reject_after_hours: 24.0
   confidence_warning_threshold: 0.6
   narrative_min_words: 150
   narrative_max_words: 500
