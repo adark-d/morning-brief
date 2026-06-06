@@ -33,13 +33,20 @@ privately to the maintainers — do not open a public issue.
 uvx pip-audit        # ephemeral; run in CI and before each release
 ```
 
-## Deferred hardening (Phase 9 — deployment)
-- **TLS required.** The bearer token is a credential; the API must run behind TLS
-  (ingress / reverse proxy). It must not be exposed over plain HTTP.
+CI enforces this: `.github/workflows/ci.yml` runs the full gate (ruff, mypy,
+pyright, pytest) plus `pip-audit` on every push and pull request.
+
+## Deployment-enforced controls
+These cannot live in the application and must be provided by the deployment:
+
+- **TLS is required.** The bearer token is a credential; the API must run behind TLS
+  (ingress / reverse proxy) and must never be exposed over plain HTTP.
 - **Rate limiting** on `POST /briefs/run` — it triggers a paid LLM call, so a leaked
-  token enables cost amplification / DoS.
-- **CI gate** running `ruff`, `mypy`, `pyright`, `pytest`, and `pip-audit` on every
-  change (no CI exists yet).
+  token enables cost amplification / DoS. Enforce it at the ingress / API gateway
+  (the layer that limits correctly across instances); the application intentionally
+  does not implement per-process limiting.
+
+## Remaining consideration
 - **Token rotation / per-caller identity.** Auth is a single shared token today —
   no per-caller identity and no independent revocation. Revisit if multiple clients
-  or audit-by-caller are required.
+  or audit-by-caller are required (per-client keys in a store, or OIDC).
