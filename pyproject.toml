@@ -97,9 +97,26 @@ ignore_missing_imports = true
 [tool.pyright]
 pythonVersion = "3.13"
 typeCheckingMode = "strict"
-include = ["src"]
+include = ["src", "tests"]
+extraPaths = ["."]  # resolve `tests.*` imports (pytest uses rootdir)
 venvPath = "."
 venv = ".venv"
+
+# The strict gate is scoped to src/. The editor (Pylance) also checks open test
+# files, where deliberately loose surfaces — fixtures, test doubles, and FastAPI's
+# TestClient (untyped responses under strict) — produce only "unknown type" noise.
+# This relaxes that family for tests/ so the editor stays clean without lowering
+# the bar on production code or the gate.
+[[tool.pyright.executionEnvironments]]
+root = "tests"
+reportUnknownMemberType = false
+reportUnknownVariableType = false
+reportUnknownArgumentType = false
+reportUnknownLambdaType = false
+reportPrivateUsage = false
+reportMissingTypeStubs = false
+reportUnusedFunction = false
+reportIncompatibleMethodOverride = false  # test doubles intentionally diverge
 
 [tool.pytest.ini_options]
 minversion = "8.0"
