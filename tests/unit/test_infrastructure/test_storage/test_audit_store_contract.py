@@ -10,6 +10,8 @@ lives, what JSON layout looks like, etc.). They depend only on the contract.
 
 from __future__ import annotations
 
+import stat
+import sys
 from collections.abc import Callable
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
@@ -62,6 +64,28 @@ async def test_record_and_retrieve_by_id(store: AuditStore) -> None:
 async def test_get_by_id_returns_none_for_missing_run(store: AuditStore) -> None:
     retrieved = await store.get_by_id("nonexistent-uuid")
     assert retrieved is None
+
+
+@pytest.mark.asyncio
+async def test_get_by_id_does_not_treat_run_id_as_a_glob(store: AuditStore) -> None:
+    # Security: a crafted run_id (glob metacharacters) must not match a record the
+    # caller never named — the id is a capability, not a search pattern.
+    await store.record(make_brief_run())
+    assert await store.get_by_id("*") is None
+    assert await store.get_by_id("run_*") is None
+
+
+@pytest.mark.skipif(sys.platform == "win32", reason="POSIX file modes")
+@pytest.mark.asyncio
+async def test_json_store_restricts_permissions_on_sensitive_data(tmp_path: Path) -> None:
+    # Security: audit records (analysis + recipients) must not be world-readable.
+    root = tmp_path / "audit"
+    store = JsonAuditStore(root_path=root)
+    await store.record(make_brief_run())
+
+    record_file = next(root.rglob("run_*.json"))
+    assert stat.S_IMODE(record_file.stat().st_mode) == 0o600
+    assert stat.S_IMODE(root.stat().st_mode) == 0o700
 
 
 @pytest.mark.asyncio

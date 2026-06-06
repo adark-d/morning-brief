@@ -10,6 +10,7 @@ from __future__ import annotations
 from datetime import date
 from http import HTTPStatus
 from typing import Annotated
+from uuid import UUID
 
 from fastapi import APIRouter, Depends, Path, Query
 
@@ -22,9 +23,8 @@ from morning_brief.api.errors import (
     error_responses,
 )
 from morning_brief.api.middleware.auth import require_auth
-from morning_brief.api.schemas.responses import RunResponse
+from morning_brief.api.schemas.responses import BriefRunResponse, RunResponse
 from morning_brief.application.composition import Application
-from morning_brief.core.models.audit import BriefRun
 
 # Every route on this router is authenticated, so it can return the auth errors;
 # 422 is added explicitly because it originates in FastAPI, not an ApiError, and
@@ -65,17 +65,17 @@ async def trigger_run(application: _ApplicationDep) -> RunResponse:
 
 @router.get(
     "/latest",
-    response_model=BriefRun,
+    response_model=BriefRunResponse,
     summary="Retrieve the most recent run",
-    response_description="The full audit record of the most recent run",
+    response_description="The audit record of the most recent run (recipient-free)",
     responses=error_responses(NotFoundError),
 )
-async def get_latest_run(application: _ApplicationDep) -> BriefRun:
+async def get_latest_run(application: _ApplicationDep) -> BriefRunResponse:
     """Return the most recently triggered run, or 404 if none exist yet."""
     run = await application.audit_store.get_latest()
     if run is None:
         raise NotFoundError("no runs recorded")
-    return run
+    return BriefRunResponse.from_run(run)
 
 
 @router.get(
@@ -98,17 +98,21 @@ async def list_runs_on_date(
 
 @router.get(
     "/{run_id}",
-    response_model=BriefRun,
+    response_model=BriefRunResponse,
     summary="Retrieve a run by id",
-    response_description="The full audit record of the requested run",
+    response_description="The audit record of the requested run (recipient-free)",
     responses=error_responses(NotFoundError),
 )
 async def get_run(
     application: _ApplicationDep,
-    run_id: Annotated[str, Path(description="The run's UUID")],
-) -> BriefRun:
-    """Return a single run by its id, or 404 if it does not exist."""
-    run = await application.audit_store.get_by_id(run_id)
+    run_id: Annotated[UUID, Path(description="The run's UUID")],
+) -> BriefRunResponse:
+    """Return a single run by its id, or 404 if it does not exist.
+
+    ``run_id`` is validated as a UUID, so non-UUID input (e.g. glob metacharacters)
+    is rejected with 422 before it can reach the audit store.
+    """
+    run = await application.audit_store.get_by_id(str(run_id))
     if run is None:
-        raise NotFoundError(f"run {run_id!r} not found")
-    return run
+        raise NotFoundError(f"run {run_id} not found")
+    return BriefRunResponse.from_run(run)

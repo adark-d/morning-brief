@@ -16,6 +16,7 @@ Implements core.interfaces.audit_store.AuditStore.
 from __future__ import annotations
 
 import asyncio
+import glob
 import time
 from datetime import date
 from pathlib import Path
@@ -38,6 +39,12 @@ from morning_brief.infrastructure.storage.json_serialization import (
 
 logger = structlog.get_logger(__name__)
 
+# Audit records hold sensitive data (analysis, recipient addresses). Restrict them
+# to the owner so other local users on a shared host cannot read them: 0700 dirs,
+# 0600 files. These modes carry no group/other bits, so they survive any umask.
+_DIR_MODE = 0o700
+_FILE_MODE = 0o600
+
 
 class JsonAuditStoreError(StorageError):
     """Operational errors specific to the JSON audit store (e.g. path collision)."""
@@ -59,7 +66,7 @@ class JsonAuditStore(AuditStore):
             root_path: Directory where audit records will live. Created if missing.
         """
         self._root = root_path
-        self._root.mkdir(parents=True, exist_ok=True)
+        self._root.mkdir(parents=True, exist_ok=True, mode=_DIR_MODE)
         logger.info("audit_store_initialised", root=str(self._root))
 
     # ============================================
@@ -149,13 +156,17 @@ class JsonAuditStore(AuditStore):
         return self._root / date_partition / f"run_{run.run_id}.json"
 
     def _write_atomic(self, target: Path, payload: str) -> None:
-        target.parent.mkdir(parents=True, exist_ok=True)
+        target.parent.mkdir(parents=True, exist_ok=True, mode=_DIR_MODE)
         tmp = target.with_suffix(target.suffix + ".tmp")
         tmp.write_text(payload, encoding="utf-8")
-        tmp.replace(target)  # atomic on POSIX
+        tmp.chmod(_FILE_MODE)  # enforce 0600 regardless of umask, before the rename
+        tmp.replace(target)  # atomic on POSIX; rename preserves the mode
 
     def _find_by_id(self, run_id: str) -> Path | None:
-        matches = list(self._root.rglob(f"run_{run_id}.json"))
+        # Escape glob metacharacters so a crafted run_id (e.g. "*") cannot match
+        # records the caller never named. The API edge also validates run_id is a
+        # UUID; this is defence in depth at the storage boundary.
+        matches = list(self._root.rglob(f"run_{glob.escape(run_id)}.json"))
         return matches[0] if matches else None
 
     def _date_dirs_newest_first(self) -> list[Path]:

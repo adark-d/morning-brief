@@ -19,7 +19,7 @@ from enum import StrEnum
 from pathlib import Path
 from typing import Annotated
 
-from pydantic import Field, SecretStr, field_validator
+from pydantic import BaseModel, Field, SecretStr, field_validator
 from pydantic_settings import (
     BaseSettings,
     PydanticBaseSettingsSource,
@@ -49,7 +49,7 @@ class LogLevel(StrEnum):
 # ============================================
 # Sub-models (one per concern)
 # ============================================
-class DataProviderSettings(BaseSettings):
+class DataProviderSettings(BaseModel):
     """Configuration for the active data provider."""
 
     name: Annotated[str, Field(description="Provider implementation, e.g. 'yfinance'")] = "yfinance"
@@ -58,7 +58,7 @@ class DataProviderSettings(BaseSettings):
     alpha_vantage_api_key: SecretStr | None = None
 
 
-class LLMSettings(BaseSettings):
+class LLMSettings(BaseModel):
     """Configuration for the analysis engine."""
 
     provider: Annotated[str, Field(description="LLM provider, e.g. 'anthropic'")] = "anthropic"
@@ -71,7 +71,7 @@ class LLMSettings(BaseSettings):
     openai_api_key: SecretStr | None = None
 
 
-class EmailChannelSettings(BaseSettings):
+class EmailChannelSettings(BaseModel):
     """SMTP configuration for the email delivery channel."""
 
     recipients: tuple[str, ...] = ()
@@ -84,7 +84,7 @@ class EmailChannelSettings(BaseSettings):
     timeout_seconds: Annotated[float, Field(gt=0, le=120)] = 30.0
 
 
-class DeliverySettings(BaseSettings):
+class DeliverySettings(BaseModel):
     """Configuration for the delivery layer.
 
     `channels` lists the active delivery channels; each channel has its own nested
@@ -97,7 +97,7 @@ class DeliverySettings(BaseSettings):
     email: EmailChannelSettings = Field(default_factory=EmailChannelSettings)
 
 
-class PromptSettings(BaseSettings):
+class PromptSettings(BaseModel):
     """Configuration for the prompt layer."""
 
     system_prompt_name: str = "senior_analyst"
@@ -110,7 +110,7 @@ class PromptSettings(BaseSettings):
     few_shot_examples_version: str = "v1.0"
 
 
-class GuardrailSettings(BaseSettings):
+class GuardrailSettings(BaseModel):
     """Configuration for the safety layer."""
 
     # Input guardrails
@@ -130,7 +130,7 @@ class GuardrailSettings(BaseSettings):
     narrative_max_words: Annotated[int, Field(ge=10, le=1000)] = 500
 
 
-class AuditSettings(BaseSettings):
+class AuditSettings(BaseModel):
     """Configuration for the audit store."""
 
     backend: Annotated[
@@ -140,7 +140,7 @@ class AuditSettings(BaseSettings):
     postgres_dsn: SecretStr | None = None
 
 
-class ObservabilitySettings(BaseSettings):
+class ObservabilitySettings(BaseModel):
     """Configuration for logging and metrics."""
 
     log_level: LogLevel = LogLevel.INFO
@@ -148,7 +148,7 @@ class ObservabilitySettings(BaseSettings):
     metrics_enabled: bool = True
 
 
-class ApiSettings(BaseSettings):
+class ApiSettings(BaseModel):
     """Configuration for the HTTP API (Layer 1/2).
 
     Auth is fail-closed: if ``auth_token`` is unset, protected endpoints refuse all

@@ -82,8 +82,33 @@ def test_triggered_run_is_retrievable_by_id() -> None:
 
 
 def test_get_unknown_run_returns_404() -> None:
+    # A well-formed (but unused) UUID is a valid request that simply matches nothing.
     client = TestClient(_make_app())
-    assert client.get("/briefs/does-not-exist", headers=_AUTH).status_code == 404
+    unused = "00000000-0000-0000-0000-000000000000"
+    assert client.get(f"/briefs/{unused}", headers=_AUTH).status_code == 404
+
+
+def test_get_run_rejects_non_uuid_id() -> None:
+    # Security: a non-UUID run_id (e.g. a glob) is rejected at the edge, never
+    # reaching the audit store.
+    client = TestClient(_make_app())
+    response = client.get("/briefs/*", headers=_AUTH)
+    assert response.status_code == 422
+    assert response.json()["code"] == "validation_error"
+
+
+def test_get_run_response_omits_recipient_pii() -> None:
+    # Security: the audit view exposes channel + status but never recipient
+    # addresses — the response DTO simply has no field for them.
+    client = TestClient(_make_app())
+    run_id = client.post("/briefs/run", headers=_AUTH).json()["run_id"]
+
+    body = client.get(f"/briefs/{run_id}", headers=_AUTH).json()
+    assert body["deliveries"] == [{"channel": "mock", "status": "delivered"}]
+    assert body["delivered_count"] == 1
+    # No recipient address anywhere, and delivery entries carry no recipient field.
+    assert "desk@firm.com" not in str(body)
+    assert all(set(d) == {"channel", "status"} for d in body["deliveries"])
 
 
 def test_latest_returns_404_when_no_runs() -> None:
@@ -165,7 +190,8 @@ def test_domain_error_maps_to_500_with_error_envelope() -> None:
             orchestrator=build_orchestrator(settings), audit_store=_FailingStore()
         ),
     )
-    response = TestClient(app).get("/briefs/anything", headers=_AUTH)
+    valid_uuid = "00000000-0000-0000-0000-000000000000"
+    response = TestClient(app).get(f"/briefs/{valid_uuid}", headers=_AUTH)
 
     assert response.status_code == 500
     body = response.json()

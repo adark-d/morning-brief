@@ -51,6 +51,20 @@ def test_out_of_range_value_raises_config_error(monkeypatch: pytest.MonkeyPatch)
         load_settings()
 
 
+def test_unprefixed_env_vars_do_not_leak_into_config(monkeypatch: pytest.MonkeyPatch) -> None:
+    # Security regression guard: only MORNING_BRIEF_* vars may configure the app.
+    # A stray generic env var must never bind to a nested setting (it could corrupt
+    # config or crash startup). This holds because nested models are BaseModel, not
+    # BaseSettings.
+    monkeypatch.setenv("NAME", "hijacked-provider")
+    monkeypatch.setenv("TIMEOUT_SECONDS", "999")
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "leaked-bare-key")
+    settings = load_settings()
+
+    assert settings.data.name == "yfinance"  # not "hijacked-provider"
+    assert settings.llm.anthropic_api_key is None  # bare key ignored
+
+
 def test_staleness_warn_must_be_below_reject(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("MORNING_BRIEF_GUARDRAILS__STALENESS_WARN_AFTER_HOURS", "30")
     monkeypatch.setenv("MORNING_BRIEF_GUARDRAILS__STALENESS_REJECT_AFTER_HOURS", "24")
