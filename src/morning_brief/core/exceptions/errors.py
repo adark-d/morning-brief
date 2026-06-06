@@ -90,6 +90,23 @@ class RecipientError(DeliveryError):
     """Recipient is not in the configured whitelist."""
 
 
+# Storage / audit
+class StorageError(BriefSystemError):
+    """Errors during audit-record persistence or retrieval."""
+
+
+class ImmutableRecordError(StorageError):
+    """Attempted to overwrite an existing audit record with different content.
+
+    Audit records are write-once. Every AuditStore implementation raises this
+    for the same violation, so callers depend on one type regardless of backend.
+    """
+
+
+class CorruptRecordError(StorageError):
+    """A stored audit record could not be parsed back into a BriefRun."""
+
+
 # Configuration
 class ConfigError(BriefSystemError):
     """Errors during configuration loading or validation."""

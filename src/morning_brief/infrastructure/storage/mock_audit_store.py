@@ -14,6 +14,7 @@ from __future__ import annotations
 
 from datetime import date
 
+from morning_brief.core.exceptions.errors import ImmutableRecordError
 from morning_brief.core.interfaces.audit_store import AuditStore
 from morning_brief.core.interfaces.base import HealthState, HealthStatus
 from morning_brief.core.models.audit import BriefRun
@@ -31,7 +32,7 @@ class MockAuditStore(AuditStore):
     async def record(self, run: BriefRun) -> None:
         existing = self._runs.get(run.run_id)
         if existing is not None and existing != run:
-            raise ValueError(
+            raise ImmutableRecordError(
                 f"Refusing to overwrite run_id={run.run_id}; audit records are immutable"
             )
         self._runs[run.run_id] = run

@@ -23,7 +23,11 @@ from pathlib import Path
 import structlog
 from pydantic import ValidationError
 
-from morning_brief.core.exceptions.errors import BriefSystemError
+from morning_brief.core.exceptions.errors import (
+    CorruptRecordError,
+    ImmutableRecordError,
+    StorageError,
+)
 from morning_brief.core.interfaces.audit_store import AuditStore
 from morning_brief.core.interfaces.base import HealthState, HealthStatus
 from morning_brief.core.models.audit import BriefRun
@@ -35,8 +39,8 @@ from morning_brief.infrastructure.storage.json_serialization import (
 logger = structlog.get_logger(__name__)
 
 
-class JsonAuditStoreError(BriefSystemError):
-    """Errors specific to the JSON audit store."""
+class JsonAuditStoreError(StorageError):
+    """Operational errors specific to the JSON audit store (e.g. path collision)."""
 
 
 class JsonAuditStore(AuditStore):
@@ -71,7 +75,7 @@ class JsonAuditStore(AuditStore):
                     f"Path collision: {target_path} exists with a different run_id"
                 )
             if serialize_run(existing) != serialize_run(run):
-                raise JsonAuditStoreError(
+                raise ImmutableRecordError(
                     f"Refusing to overwrite existing record for run_id={run.run_id}; "
                     "audit records are immutable"
                 )
@@ -107,10 +111,14 @@ class JsonAuditStore(AuditStore):
         return tuple(sorted(runs, key=lambda r: r.triggered_at))
 
     async def get_latest(self) -> BriefRun | None:
-        latest_path = await asyncio.to_thread(self._find_latest_path)
-        if latest_path is None:
-            return None
-        return await self._read_if_exists(latest_path)
+        # Date partitions are ISO-named, so iterating newest-first and returning
+        # the last run of the first non-empty day gives the run with the greatest
+        # triggered_at — not merely the most recently written file.
+        for date_dir in await asyncio.to_thread(self._date_dirs_newest_first):
+            runs = await self.query_by_date(date.fromisoformat(date_dir.name))
+            if runs:
+                return runs[-1]
+        return None
 
     async def health_check(self) -> HealthStatus:
         start = time.perf_counter()
@@ -150,13 +158,12 @@ class JsonAuditStore(AuditStore):
         matches = list(self._root.rglob(f"run_{run_id}.json"))
         return matches[0] if matches else None
 
-    def _find_latest_path(self) -> Path | None:
-        all_runs = sorted(
-            self._root.rglob("run_*.json"),
-            key=lambda p: p.stat().st_mtime,
+    def _date_dirs_newest_first(self) -> list[Path]:
+        return sorted(
+            (d for d in self._root.iterdir() if d.is_dir()),
+            key=lambda d: d.name,
             reverse=True,
         )
-        return all_runs[0] if all_runs else None
 
     def _verify_writable(self) -> None:
         """Touch a probe file and remove it to verify write access."""
@@ -171,4 +178,4 @@ class JsonAuditStore(AuditStore):
             payload = await asyncio.to_thread(path.read_text, encoding="utf-8")
             return deserialize_run(payload)
         except ValidationError as exc:
-            raise JsonAuditStoreError(f"Audit record at {path} is corrupted: {exc}") from exc
+            raise CorruptRecordError(f"Audit record at {path} is corrupted: {exc}") from exc

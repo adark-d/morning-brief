@@ -18,13 +18,11 @@ from typing import cast
 import pytest
 from tests.fixtures import make_brief_run
 
+from morning_brief.core.exceptions.errors import ImmutableRecordError
 from morning_brief.core.interfaces.audit_store import AuditStore
 from morning_brief.core.interfaces.base import HealthState
 from morning_brief.core.models.audit import RunStatus
-from morning_brief.infrastructure.storage.json_audit_store import (
-    JsonAuditStore,
-    JsonAuditStoreError,
-)
+from morning_brief.infrastructure.storage.json_audit_store import JsonAuditStore
 from morning_brief.infrastructure.storage.mock_audit_store import MockAuditStore
 
 
@@ -87,7 +85,7 @@ async def test_record_rejects_overwrite_with_different_content(store: AuditStore
         status=RunStatus.FAILED,
     )
 
-    with pytest.raises((JsonAuditStoreError, ValueError)):
+    with pytest.raises(ImmutableRecordError):
         await store.record(modified)
 
 
@@ -141,6 +139,40 @@ async def test_get_latest_returns_most_recent_run(store: AuditStore) -> None:
     latest = await store.get_latest()
     assert latest is not None
     assert latest.run_id == newer.run_id
+
+
+@pytest.mark.asyncio
+async def test_get_latest_orders_by_triggered_at_not_write_order(store: AuditStore) -> None:
+    """A backfilled older run written last must not be reported as the latest.
+
+    Regression guard: ordering must use triggered_at, not file write time.
+    """
+    newer = make_brief_run(triggered_at=datetime(2026, 5, 10, 7, 0, tzinfo=UTC))
+    older = make_brief_run(triggered_at=datetime(2026, 5, 9, 7, 0, tzinfo=UTC))
+
+    await store.record(newer)
+    await store.record(older)  # written last, but chronologically earlier
+
+    latest = await store.get_latest()
+    assert latest is not None
+    assert latest.run_id == newer.run_id
+
+
+@pytest.mark.asyncio
+async def test_get_latest_uses_triggered_at_within_a_single_day(store: AuditStore) -> None:
+    """Within one calendar day, the run with the greatest triggered_at wins."""
+    base = datetime(2026, 5, 10, 7, 0, tzinfo=UTC)
+    first = make_brief_run(triggered_at=base)
+    last = make_brief_run(triggered_at=base + timedelta(hours=3))
+    middle = make_brief_run(triggered_at=base + timedelta(hours=1))
+
+    await store.record(first)
+    await store.record(last)
+    await store.record(middle)
+
+    latest = await store.get_latest()
+    assert latest is not None
+    assert latest.run_id == last.run_id
 
 
 @pytest.mark.asyncio

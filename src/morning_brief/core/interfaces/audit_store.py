@@ -34,10 +34,9 @@ class AuditStore(ABC):
     async def record(self, run: BriefRun) -> None:
         """Persist a BriefRun. Idempotent on the run_id.
 
-        Implementations:
-            - SHA-2 or similar hash the run_id to determine storage location
-            - raise if the same run_id is recorded twice with different content
-              (this is a programming error; runs should be constructed once)
+        Re-recording an identical run is a no-op. Recording a different run under
+        an existing run_id raises ImmutableRecordError — runs are constructed once
+        and never edited. Every implementation honours this contract identically.
         """
         ...
 
