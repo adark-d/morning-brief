@@ -29,6 +29,7 @@ class AnalysisEngine(ABC):
         snapshot: MarketSnapshot,
         prompt: str,
         *,
+        prompt_version: str = "unversioned",
         max_tokens: int = 2000,
         timeout_seconds: float = 30.0,
     ) -> BriefAnalysis:
@@ -38,6 +39,8 @@ class AnalysisEngine(ABC):
             snapshot: The validated market data the analysis is grounded in.
             prompt: The complete prompt (system + context + schema + examples)
                 already assembled by the prompt builder.
+            prompt_version: Version of the prompt used, recorded on the analysis
+                for the audit trail.
             max_tokens: Upper bound on the response length.
             timeout_seconds: Maximum time to wait for the model.
 
