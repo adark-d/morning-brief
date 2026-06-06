@@ -64,8 +64,9 @@ class BriefAnalysis(FrozenModel):
         str,
         Field(
             min_length=150,
-            max_length=500,
-            description="Complete morning brief narrative",
+            max_length=4000,
+            description="Complete morning brief narrative (~150-500 words; "
+            "the word count is enforced by the output length guardrail)",
         ),
     ]
     confidence: Annotated[

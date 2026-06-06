@@ -67,7 +67,7 @@ class _AnalysisDraft(BaseModel):
     key_signals: Annotated[list[str], Field(min_length=2, max_length=5)]
     macro_context: Annotated[str, Field(min_length=20, max_length=400)]
     watch_today: Annotated[list[str], Field(min_length=2, max_length=3)]
-    full_narrative: Annotated[str, Field(min_length=150, max_length=500)]
+    full_narrative: Annotated[str, Field(min_length=150, max_length=4000)]
     confidence: Annotated[float, Field(ge=0.0, le=1.0)]
 
 

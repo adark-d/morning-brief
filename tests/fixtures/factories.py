@@ -73,12 +73,18 @@ def make_brief_analysis(
     macro_context: str = "Oil firm, dollar weaker, VIX subdued — markets in wait-and-see mode.",
     watch_today: tuple[str, ...] = ("CPI at 13:30", "30Y auction at 18:00"),
     full_narrative: str = (
-        "Markets enter the session in a holding pattern ahead of the US CPI release. "
-        "Treasury yields are little changed across the curve, with the 10Y holding near 4.42% "
-        "and the 2s10s spread at 38 bps. Crude is firmer on supply concerns, the dollar is "
-        "modestly weaker against the majors, and equity futures point to a flat open. "
-        "Today's CPI print is the decisive event; a hotter-than-expected number could revive "
-        "the 'higher for longer' narrative and steepen the front end."
+        "Markets enter the session in a holding pattern ahead of the US CPI release, with desks "
+        "reluctant to add risk before the print. Treasury yields are little changed across the "
+        "curve, with the 10Y holding near 4.42% and the front end anchored as traders await fresh "
+        "inflation data. The 2s10s spread is steady at 38 bps, signalling a market that is cautious "
+        "rather than convinced of a near-term policy shift. Crude is firmer on renewed supply "
+        "concerns, the dollar is modestly weaker against the majors, and equity futures point to a "
+        "broadly flat open. Credit spreads remain well behaved, with no sign of stress in "
+        "investment-grade or high-yield cash. Today's CPI print is the decisive event on the "
+        "calendar; a hotter-than-expected number could revive the higher-for-longer narrative, lift "
+        "front-end yields, and flatten the curve further, while a soft reading would likely see "
+        "duration bid and the 10Y test lower. The 30Y auction later in the session is the second "
+        "focus, with dealers watching the tail and bid-to-cover for signs of waning demand."
     ),
     confidence: float = 0.82,
     model_used: str = "claude-opus-4-7",
