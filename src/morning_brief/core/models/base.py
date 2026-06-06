@@ -8,7 +8,28 @@ Every domain model in core.models inherits from FrozenModel. This guarantees:
 
 from __future__ import annotations
 
-from pydantic import BaseModel, ConfigDict
+from datetime import UTC, datetime
+from typing import Annotated
+
+from pydantic import AfterValidator, BaseModel, ConfigDict
+
+
+def _ensure_utc(value: datetime) -> datetime:
+    """Reject naive datetimes and normalise aware ones to UTC.
+
+    Every datetime in this codebase is timezone-aware UTC. This is applied via
+    the UtcDatetime alias rather than a per-model validator, so the rule lives in
+    exactly one place.
+    """
+    if value.tzinfo is None:
+        raise ValueError("datetime must be timezone-aware")
+    return value.astimezone(UTC)
+
+
+# Use for every datetime field on a domain model: `field: UtcDatetime` (or
+# `UtcDatetime | None` for optional). Enforces tz-aware UTC on construction
+# and on deserialisation.
+UtcDatetime = Annotated[datetime, AfterValidator(_ensure_utc)]
 
 
 class FrozenModel(BaseModel):

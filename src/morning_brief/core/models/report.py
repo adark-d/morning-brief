@@ -6,13 +6,12 @@ produces a RenderedReport that the DeliveryChannel knows how to send.
 
 from __future__ import annotations
 
-from datetime import UTC, datetime
 from enum import StrEnum
 from typing import Annotated
 
-from pydantic import Field, field_validator
+from pydantic import Field
 
-from morning_brief.core.models.base import FrozenModel
+from morning_brief.core.models.base import FrozenModel, UtcDatetime
 
 
 class ReportFormat(StrEnum):
@@ -37,13 +36,6 @@ class RenderedReport(FrozenModel):
     html_body: Annotated[str, Field(min_length=50)]
     plain_text_body: Annotated[str, Field(min_length=50)]
     additional_formats: dict[ReportFormat, str] = Field(default_factory=dict)
-    rendered_at: datetime
+    rendered_at: UtcDatetime
     template_version: Annotated[str, Field(min_length=1)]
     contains_disclaimer: bool = False
-
-    @field_validator("rendered_at")
-    @classmethod
-    def must_be_timezone_aware(cls, v: datetime) -> datetime:
-        if v.tzinfo is None:
-            raise ValueError("rendered_at must be timezone-aware")
-        return v.astimezone(UTC)

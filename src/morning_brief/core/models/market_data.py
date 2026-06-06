@@ -6,12 +6,11 @@ before anything reaches Claude. Section 10.1 of the architecture document.
 
 from __future__ import annotations
 
-from datetime import UTC, datetime
 from typing import Annotated
 
-from pydantic import Field, field_validator
+from pydantic import Field
 
-from morning_brief.core.models.base import FrozenModel
+from morning_brief.core.models.base import FrozenModel, UtcDatetime
 
 
 # ============================================
@@ -21,19 +20,12 @@ class YieldPoint(FrozenModel):
     """A single Treasury yield observation.
 
     Yields are quoted as percentages (e.g. 4.42 for 4.42%, not 0.0442).
-    The validator catches the common bug of passing the decimal form.
+    The range catches the common bug of passing the decimal form.
     """
 
     maturity: Annotated[str, Field(description="e.g. '2Y', '10Y', '30Y'")]
     yield_pct: Annotated[float, Field(ge=-1.0, le=25.0, description="Yield as percent")]
-    timestamp: datetime
-
-    @field_validator("timestamp")
-    @classmethod
-    def must_be_timezone_aware(cls, v: datetime) -> datetime:
-        if v.tzinfo is None:
-            raise ValueError("timestamp must be timezone-aware")
-        return v.astimezone(UTC)
+    timestamp: UtcDatetime
 
 
 class PricePoint(FrozenModel):
@@ -41,14 +33,7 @@ class PricePoint(FrozenModel):
 
     symbol: Annotated[str, Field(min_length=1, max_length=20)]
     price: Annotated[float, Field(gt=0)]
-    timestamp: datetime
-
-    @field_validator("timestamp")
-    @classmethod
-    def must_be_timezone_aware(cls, v: datetime) -> datetime:
-        if v.tzinfo is None:
-            raise ValueError("timestamp must be timezone-aware")
-        return v.astimezone(UTC)
+    timestamp: UtcDatetime
 
 
 class FXPoint(FrozenModel):
@@ -56,14 +41,7 @@ class FXPoint(FrozenModel):
 
     pair: Annotated[str, Field(pattern=r"^[A-Z]{3}/[A-Z]{3}$", description="e.g. 'GBP/USD'")]
     rate: Annotated[float, Field(gt=0)]
-    timestamp: datetime
-
-    @field_validator("timestamp")
-    @classmethod
-    def must_be_timezone_aware(cls, v: datetime) -> datetime:
-        if v.tzinfo is None:
-            raise ValueError("timestamp must be timezone-aware")
-        return v.astimezone(UTC)
+    timestamp: UtcDatetime
 
 
 # ============================================
@@ -105,7 +83,11 @@ class MarketSnapshot(FrozenModel):
     to the guardrails and then to the prompt builder.
     """
 
-    timestamp: datetime
+    # Section 10.1 specifies these as keyed maps, so they are dicts rather than
+    # tuples. frozen=True blocks rebinding the attribute but not in-place mutation
+    # of the dict; that window is acceptable because a snapshot is constructed once
+    # by the DataProvider and is immutable at rest once serialised into a BriefRun.
+    timestamp: UtcDatetime
     yields: dict[str, YieldPoint] = Field(
         default_factory=dict,
         description="Treasury yields keyed by maturity (e.g. '2Y', '10Y')",
@@ -119,13 +101,6 @@ class MarketSnapshot(FrozenModel):
         description="FX rates keyed by pair (e.g. 'GBP/USD')",
     )
     data_quality: DataQualityReport
-
-    @field_validator("timestamp")
-    @classmethod
-    def must_be_timezone_aware(cls, v: datetime) -> datetime:
-        if v.tzinfo is None:
-            raise ValueError("timestamp must be timezone-aware")
-        return v.astimezone(UTC)
 
     @property
     def has_yields(self) -> bool:

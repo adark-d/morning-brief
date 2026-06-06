@@ -10,14 +10,13 @@ at the storage layer; the frozen models enforce it at the language layer.
 from __future__ import annotations
 
 import uuid
-from datetime import UTC, datetime
 from enum import StrEnum
 from typing import Annotated
 
-from pydantic import Field, field_validator
+from pydantic import Field
 
 from morning_brief.core.models.analysis import BriefAnalysis
-from morning_brief.core.models.base import FrozenModel
+from morning_brief.core.models.base import FrozenModel, UtcDatetime
 from morning_brief.core.models.market_data import MarketSnapshot
 
 
@@ -60,18 +59,9 @@ class DeliveryResult(FrozenModel):
     recipient: Annotated[str, Field(min_length=3)]
     channel: Annotated[str, Field(description="e.g. 'email', 'slack'")]
     status: DeliveryStatus
-    attempted_at: datetime
-    completed_at: datetime | None = None
+    attempted_at: UtcDatetime
+    completed_at: UtcDatetime | None = None
     error_message: str | None = None
-
-    @field_validator("attempted_at", "completed_at")
-    @classmethod
-    def must_be_timezone_aware(cls, v: datetime | None) -> datetime | None:
-        if v is None:
-            return v
-        if v.tzinfo is None:
-            raise ValueError("timestamps must be timezone-aware")
-        return v.astimezone(UTC)
 
 
 class BriefError(FrozenModel):
@@ -85,15 +75,8 @@ class BriefError(FrozenModel):
     error_type: Annotated[str, Field(min_length=1, description="Exception class name")]
     message: Annotated[str, Field(min_length=1)]
     severity: ErrorSeverity
-    occurred_at: datetime
+    occurred_at: UtcDatetime
     context: dict[str, str] = Field(default_factory=dict)
-
-    @field_validator("occurred_at")
-    @classmethod
-    def must_be_timezone_aware(cls, v: datetime) -> datetime:
-        if v.tzinfo is None:
-            raise ValueError("occurred_at must be timezone-aware")
-        return v.astimezone(UTC)
 
 
 # ============================================
@@ -107,23 +90,14 @@ class BriefRun(FrozenModel):
     """
 
     run_id: Annotated[str, Field(default_factory=lambda: str(uuid.uuid4()))]
-    triggered_at: datetime
-    completed_at: datetime | None = None
+    triggered_at: UtcDatetime
+    completed_at: UtcDatetime | None = None
     status: RunStatus
     snapshot: MarketSnapshot | None = None
     analysis: BriefAnalysis | None = None
     delivery_results: tuple[DeliveryResult, ...] = ()
     errors: tuple[BriefError, ...] = ()
     duration_seconds: float | None = None
-
-    @field_validator("triggered_at", "completed_at")
-    @classmethod
-    def must_be_timezone_aware(cls, v: datetime | None) -> datetime | None:
-        if v is None:
-            return v
-        if v.tzinfo is None:
-            raise ValueError("timestamps must be timezone-aware")
-        return v.astimezone(UTC)
 
     @property
     def succeeded(self) -> bool:

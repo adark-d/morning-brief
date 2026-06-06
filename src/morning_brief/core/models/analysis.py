@@ -6,12 +6,11 @@ YAML (Phase 4) and validated by the output guardrail (Section 13.2) before use.
 
 from __future__ import annotations
 
-from datetime import UTC, datetime
 from typing import Annotated
 
-from pydantic import Field, field_validator
+from pydantic import Field
 
-from morning_brief.core.models.base import FrozenModel
+from morning_brief.core.models.base import FrozenModel, UtcDatetime
 
 
 class BriefAnalysis(FrozenModel):
@@ -79,11 +78,5 @@ class BriefAnalysis(FrozenModel):
     ]
     model_used: Annotated[str, Field(min_length=1, description="Model identifier")]
     prompt_version: Annotated[str, Field(min_length=1, description="Prompt version used")]
-    generated_at: datetime
-
-    @field_validator("generated_at")
-    @classmethod
-    def must_be_timezone_aware(cls, v: datetime) -> datetime:
-        if v.tzinfo is None:
-            raise ValueError("generated_at must be timezone-aware")
-        return v.astimezone(UTC)
+    generated_at: UtcDatetime
+    cost_usd: Annotated[float | None, Field(ge=0, description="LLM cost for this run")] = None
