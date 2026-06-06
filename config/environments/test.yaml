@@ -1,0 +1,29 @@
+# Test overrides — applied on top of default.yaml.
+# Used by pytest fixtures to construct deterministic Settings.
+
+environment: test
+
+data:
+  name: mock
+  timeout_seconds: 1.0
+  staleness_threshold_hours: 24.0
+
+llm:
+  provider: mock
+  model: mock-model
+  max_tokens: 500
+  timeout_seconds: 5.0
+  max_retries: 0
+
+delivery:
+  channel: mock
+  smtp_host: mock
+  smtp_from: test@mock
+
+audit:
+  backend: json
+  json_store_path: ./audit/test
+
+observability:
+  log_level: DEBUG
+  json_logs: false

@@ -1,0 +1,22 @@
+# Development overrides — applied on top of default.yaml.
+# Local-only convenience: more permissive timeouts, debug logging.
+
+environment: development
+
+llm:
+  model: claude-haiku-4-5     # cheaper for dev iteration
+  max_tokens: 1500
+  timeout_seconds: 60.0       # be generous locally
+
+delivery:
+  channel: email
+  smtp_host: localhost
+  smtp_from: dev@local
+
+audit:
+  backend: json
+  json_store_path: ./audit/dev
+
+observability:
+  log_level: DEBUG
+  json_logs: false            # human-readable for local terminal

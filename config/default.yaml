@@ -1,0 +1,54 @@
+# Default settings — base layer for all environments.
+# Environment-specific overrides live in config/environments/<env>.yaml.
+# Secrets MUST come from env vars (MORNING_BRIEF_*), not from this file.
+
+environment: development
+schedule_cron: "0 7 * * 1-5"   # 07:00 GMT on weekdays
+
+data:
+  name: yfinance
+  timeout_seconds: 10.0
+  staleness_threshold_hours: 4.0
+
+llm:
+  provider: anthropic
+  model: claude-opus-4-7
+  fallback_model: claude-haiku-4-5
+  max_tokens: 2000
+  timeout_seconds: 30.0
+  max_retries: 1
+
+delivery:
+  channel: email
+  smtp_host: localhost
+  smtp_port: 587
+  smtp_from: noreply@example.com
+  duplicate_prevention_enabled: true
+  # recipients populated by env var: MORNING_BRIEF_DELIVERY__RECIPIENTS
+
+prompt:
+  system_prompt_name: senior_analyst
+  system_prompt_version: v1.0
+  context_template_name: market_data
+  context_template_version: v1.0
+  output_schema_name: brief_schema
+  output_schema_version: v1.0
+  few_shot_examples_name: examples
+  few_shot_examples_version: v1.0
+
+guardrails:
+  yield_min_pct: 0.1
+  yield_max_pct: 20.0
+  min_yield_maturities_required: 3
+  confidence_warning_threshold: 0.6
+  narrative_min_words: 150
+  narrative_max_words: 500
+
+audit:
+  backend: json
+  json_store_path: ./audit
+
+observability:
+  log_level: INFO
+  json_logs: true
+  metrics_enabled: true

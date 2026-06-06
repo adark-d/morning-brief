@@ -1,0 +1,24 @@
+# Production overrides — applied on top of default.yaml.
+# Secrets and recipient lists come from env vars, NOT from this file.
+
+environment: production
+
+llm:
+  model: claude-opus-4-7
+  max_tokens: 2000
+  timeout_seconds: 30.0
+  max_retries: 1
+
+delivery:
+  channel: email
+  duplicate_prevention_enabled: true
+  # smtp_host, smtp_port, smtp_from injected via env vars
+
+audit:
+  backend: postgres
+  # postgres_dsn injected via env var: MORNING_BRIEF_AUDIT__POSTGRES_DSN
+
+observability:
+  log_level: INFO
+  json_logs: true
+  metrics_enabled: true

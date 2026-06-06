@@ -4,7 +4,7 @@ version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
 authors = [
-    { name = "David Adarkwah", email = "72516754+adark-d@users.noreply.github.com" }
+    { name = "David Adarkwah", email = "72516754+adark-d@users.noreply.github.com" },
 ]
 requires-python = ">=3.13"
 dependencies = [
@@ -47,30 +47,31 @@ src = ["src", "tests"]
 
 [tool.ruff.lint]
 select = [
-    "E",    # pycodestyle errors
-    "W",    # pycodestyle warnings
-    "F",    # pyflakes
-    "I",    # isort
-    "B",    # bugbear
-    "C4",   # comprehensions
-    "UP",   # pyupgrade
-    "SIM",  # simplify
-    "RUF",  # ruff-specific
-    "N",    # naming conventions
-    "ANN",  # annotations
-    "ARG",  # unused args
-    "PTH",  # use pathlib
-    "RET",  # return statements
-    "TID",  # tidy imports
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes
+    "I",   # isort
+    "B",   # bugbear
+    "C4",  # comprehensions
+    "UP",  # pyupgrade
+    "SIM", # simplify
+    "RUF", # ruff-specific
+    "N",   # naming conventions
+    "ANN", # annotations
+    "ARG", # unused args
+    "PTH", # use pathlib
+    "RET", # return statements
+    "TID", # tidy imports
 ]
 ignore = [
-    "E501",     # line length (formatter handles)
-    "ANN101",   # missing type annotation for self
-    "ANN102",   # missing type annotation for cls
+    "E501", # line length (formatter handles)
 ]
 
 [tool.ruff.lint.per-file-ignores]
-"tests/**" = ["ANN", "S101"]  # tests don't need full annotations or assertion warnings
+"tests/**" = [
+    "ANN",
+    "S101",
+] # tests don't need full annotations or assertion warnings
 
 [tool.ruff.format]
 quote-style = "double"
@@ -89,10 +90,6 @@ warn_redundant_casts = true
 warn_unused_ignores = true
 warn_no_return = true
 warn_unreachable = true
-
-[[tool.mypy.overrides]]
-module = ["yfinance.*", "tenacity.*"]
-ignore_missing_imports = true
 
 [tool.pytest.ini_options]
 minversion = "8.0"

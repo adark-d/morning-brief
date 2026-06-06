@@ -19,3 +19,7 @@ wheels/
 # Claude Code local cache (CLAUDE.md itself IS tracked)
 .claude/
 CLAUDE.md
+
+# Audit records — runtime artefacts, never tracked
+audit/
+*.audit.json
