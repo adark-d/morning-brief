@@ -51,6 +51,13 @@ def test_out_of_range_value_raises_config_error(monkeypatch: pytest.MonkeyPatch)
         load_settings()
 
 
+def test_staleness_warn_must_be_below_reject(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("MORNING_BRIEF_GUARDRAILS__STALENESS_WARN_AFTER_HOURS", "30")
+    monkeypatch.setenv("MORNING_BRIEF_GUARDRAILS__STALENESS_REJECT_AFTER_HOURS", "24")
+    with pytest.raises(InvalidConfigError):
+        load_settings()
+
+
 def test_secrets_are_masked_in_repr(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("MORNING_BRIEF_LLM__ANTHROPIC_API_KEY", "super-secret-value")
     settings = load_settings()

@@ -118,6 +118,12 @@ class GuardrailSettings(BaseSettings):
     yield_max_pct: Annotated[float, Field(ge=-5.0, le=25.0)] = 20.0
     min_yield_maturities_required: Annotated[int, Field(ge=1, le=10)] = 3
 
+    # Staleness (input guardrail): WARNING past warn, CRITICAL abort past reject.
+    # Distinct from data.staleness_threshold_hours, which the provider uses to set
+    # the is_stale flag at fetch time — the guardrail also honours that flag.
+    staleness_warn_after_hours: Annotated[float, Field(gt=0, le=72)] = 6.0
+    staleness_reject_after_hours: Annotated[float, Field(gt=0, le=72)] = 24.0
+
     # Output guardrails
     confidence_warning_threshold: Annotated[float, Field(ge=0.0, le=1.0)] = 0.6
     narrative_min_words: Annotated[int, Field(ge=10, le=1000)] = 150
@@ -176,11 +182,22 @@ class Settings(BaseSettings):
 
     @field_validator("guardrails")
     @classmethod
-    def yield_min_must_be_below_max(cls, v: GuardrailSettings) -> GuardrailSettings:
+    def guardrail_thresholds_must_be_ordered(cls, v: GuardrailSettings) -> GuardrailSettings:
         if v.yield_min_pct >= v.yield_max_pct:
             raise ValueError(
                 f"yield_min_pct ({v.yield_min_pct}) must be strictly less than "
                 f"yield_max_pct ({v.yield_max_pct})"
+            )
+        if v.staleness_warn_after_hours >= v.staleness_reject_after_hours:
+            raise ValueError(
+                f"staleness_warn_after_hours ({v.staleness_warn_after_hours}) must be "
+                f"strictly less than staleness_reject_after_hours "
+                f"({v.staleness_reject_after_hours})"
+            )
+        if v.narrative_min_words >= v.narrative_max_words:
+            raise ValueError(
+                f"narrative_min_words ({v.narrative_min_words}) must be strictly less "
+                f"than narrative_max_words ({v.narrative_max_words})"
             )
         return v
 

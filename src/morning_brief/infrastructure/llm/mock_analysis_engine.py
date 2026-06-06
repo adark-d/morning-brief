@@ -59,11 +59,26 @@ class MockAnalysisEngine(AnalysisEngine):
             macro_context="Oil firm, dollar softer, VIX subdued — markets in wait-and-see mode.",
             watch_today=("US CPI at 13:30 GMT", "30Y auction at 18:00 GMT"),
             full_narrative=(
-                "Markets enter the session in a holding pattern ahead of the US CPI release. "
-                "Treasury yields are little changed across the curve and the dollar is modestly "
-                "softer. Crude is firmer on supply concerns while equity futures point to a flat "
-                "open. The CPI print is the decisive event; a hotter number could revive the "
-                "higher-for-longer narrative and steepen the front end of the curve."
+                # Spec-compliant length (~150-500 words) and deliberately decimal-free, so a
+                # mock pipeline run passes the length and numerical-grounding guardrails cleanly
+                # against any snapshot.
+                "Markets enter the session in a holding pattern ahead of the US CPI release, "
+                "with desks reluctant to add risk before the print. Treasury yields are little "
+                "changed across the curve, the front end anchored as traders await fresh "
+                "inflation data, and the long end steady on limited supply pressure. The curve "
+                "remains modestly inverted, signalling a market that is cautious rather than "
+                "convinced of a near-term policy shift. Crude is firmer on renewed supply "
+                "concerns, the dollar is modestly softer against the majors, and equity futures "
+                "point to a broadly flat open. Credit spreads remain well behaved, with no sign "
+                "of stress in investment-grade or high-yield cash, and volatility sits near the "
+                "low end of its recent range. Today's CPI print is the decisive event on the "
+                "calendar; a hotter-than-expected number could revive the higher-for-longer "
+                "narrative, lift front-end yields, and flatten the curve further, while a softer "
+                "reading would likely see duration bid and the front end richen. Beyond the data, "
+                "desks are watching the afternoon government auction for a read on sponsorship, "
+                "where a weak tail or soft bid-to-cover would hint at waning demand. Positioning "
+                "is light and conviction low, so the brief counsels patience: let the print set "
+                "direction rather than anticipating it, and keep risk measured into the number."
             ),
             confidence=0.82,
             model_used=self._model,
