@@ -23,6 +23,9 @@ dependencies = [
     "yfinance>=1.4.1",
 ]
 
+[project.scripts]
+morning-brief = "morning_brief.cli:main"
+
 [build-system]
 requires = ["uv_build>=0.11.12,<0.12.0"]
 build-backend = "uv_build"
