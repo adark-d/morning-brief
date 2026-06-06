@@ -114,3 +114,9 @@ exclude_lines = [
     "if TYPE_CHECKING:",
     "if __name__ == .__main__.:",
 ]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/morning_brief"]
+
+[tool.hatch.build.targets.wheel.shared-data]
+"src/morning_brief/py.typed" = "morning_brief/py.typed"
