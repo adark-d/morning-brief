@@ -7,6 +7,8 @@ A production-grade LLM pipeline that compresses ~60 minutes of pre-market contex
 
 This repo implements the architecture, guardrails, and orchestration patterns required to run an LLM-backed decision-support system reliably in a regulated environment. It is intentionally generic — designed to work with any market data provider, any LLM backend, any delivery channel — and intentionally opinionated about the production concerns most demos skip.
 
+A full walkthrough of the design and the reasoning behind it is in [docs/architecture.md](docs/architecture.md).
+
 ## Architectural concerns this addresses
 
 - **Three-tier guardrails** — input validation before the LLM, output verification after, delivery-time recipient checks
