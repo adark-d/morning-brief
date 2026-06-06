@@ -9,6 +9,11 @@ wheels/
 # Virtual environments
 .venv
 
+# Tool caches
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+
 # Secrets
 .env
 .env.local
@@ -23,3 +28,12 @@ CLAUDE.md
 # Audit records — runtime artefacts, never tracked
 audit/
 *.audit.json
+
+# Coverage artefacts
+.coverage
+htmlcov/
+coverage.xml
+
+# Architecture doc + handover notes — contain firm/stakeholder names, never tracked
+*.docx
+HANDOVER.md
