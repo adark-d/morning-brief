@@ -17,6 +17,8 @@ wiring rather than a coincidence.
 
 from __future__ import annotations
 
+from dataclasses import dataclass
+
 from morning_brief.application.delivery_router import ChannelRouter, ChannelTarget
 from morning_brief.application.orchestrator import BriefOrchestrator
 from morning_brief.config.settings import Settings
@@ -59,23 +61,42 @@ from morning_brief.infrastructure.storage.mock_audit_store import MockAuditStore
 from morning_brief.prompts import PromptBuilder, PromptRegistry, PromptSelection, PromptValidator
 
 
-def build_orchestrator(settings: Settings) -> BriefOrchestrator:
-    """Assemble a fully-wired BriefOrchestrator from settings."""
+@dataclass(frozen=True)
+class Application:
+    """The assembled application: the orchestrator and the audit store it writes to.
+
+    Both share one ``AuditStore`` instance so a run triggered through the API is
+    immediately retrievable through the read endpoints.
+    """
+
+    orchestrator: BriefOrchestrator
+    audit_store: AuditStore
+
+
+def build_application(settings: Settings) -> Application:
+    """Assemble the orchestrator and the audit store it shares, from settings."""
+    audit_store = _build_audit_store(settings)
     renderer = HtmlEmailRenderer()
-    return BriefOrchestrator(
+    orchestrator = BriefOrchestrator(
         data_provider=_build_data_provider(settings),
         prompt_builder=_build_prompt_builder(settings),
         prompt_validator=PromptValidator(),
         analysis_engine=_build_analysis_engine(settings),
         renderer=renderer,
         router=_build_router(settings, renderer),
-        audit_store=_build_audit_store(settings),
+        audit_store=audit_store,
         input_guardrails=_build_input_guardrails(settings),
         output_guardrails=_build_output_guardrails(settings),
         delivery_guardrails=_build_delivery_guardrails(settings),
         llm_max_tokens=settings.llm.max_tokens,
         llm_timeout_seconds=settings.llm.timeout_seconds,
     )
+    return Application(orchestrator=orchestrator, audit_store=audit_store)
+
+
+def build_orchestrator(settings: Settings) -> BriefOrchestrator:
+    """Assemble just the orchestrator. Convenience over ``build_application``."""
+    return build_application(settings).orchestrator
 
 
 # --------------------------------------------------------------- selectors

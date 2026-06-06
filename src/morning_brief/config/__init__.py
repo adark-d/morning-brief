@@ -8,6 +8,7 @@ Import from this package:
 
 from morning_brief.config.loader import get_settings, load_settings
 from morning_brief.config.settings import (
+    ApiSettings,
     AuditSettings,
     DataProviderSettings,
     DeliverySettings,
@@ -22,6 +23,7 @@ from morning_brief.config.settings import (
 )
 
 __all__ = [
+    "ApiSettings",
     "AuditSettings",
     "DataProviderSettings",
     "DeliverySettings",

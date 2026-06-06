@@ -148,6 +148,17 @@ class ObservabilitySettings(BaseSettings):
     metrics_enabled: bool = True
 
 
+class ApiSettings(BaseSettings):
+    """Configuration for the HTTP API (Layer 1/2).
+
+    Auth is fail-closed: if ``auth_token`` is unset, protected endpoints refuse all
+    requests rather than serving an unauthenticated API. Rate limiting is deferred
+    to the deployment-hardening phase (it needs state shared across workers).
+    """
+
+    auth_token: SecretStr | None = None
+
+
 # ============================================
 # Top-level Settings
 # ============================================
@@ -179,6 +190,7 @@ class Settings(BaseSettings):
     guardrails: GuardrailSettings = Field(default_factory=GuardrailSettings)
     audit: AuditSettings = Field(default_factory=AuditSettings)
     observability: ObservabilitySettings = Field(default_factory=ObservabilitySettings)
+    api: ApiSettings = Field(default_factory=ApiSettings)
 
     @field_validator("guardrails")
     @classmethod
