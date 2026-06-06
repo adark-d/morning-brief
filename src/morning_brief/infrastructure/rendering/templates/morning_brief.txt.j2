@@ -1,0 +1,30 @@
+FIXED INCOME MORNING BRIEF
+{{ brief_date }}
+
+{{ headline }}
+
+==================================================
+
+KEY SIGNALS
+{% for signal in key_signals %}  - {{ signal }}
+{% endfor %}
+
+YIELD CURVE
+{{ yield_curve_summary }}
+
+MACRO CONTEXT
+{{ macro_context }}
+
+WATCH TODAY
+{% for item in watch_today %}  - {{ item }}
+{% endfor %}
+
+FULL BRIEF
+{{ full_narrative }}
+
+==================================================
+
+Confidence: {{ confidence_pct }}% (reflects data completeness and analysis certainty)
+Generated {{ generated_at }} | {{ model_used }}
+
+{{ disclaimer }}
