@@ -35,7 +35,7 @@ class RenderedReport(FrozenModel):
     subject: Annotated[str, Field(min_length=5, max_length=200)]
     html_body: Annotated[str, Field(min_length=50)]
     plain_text_body: Annotated[str, Field(min_length=50)]
-    additional_formats: dict[ReportFormat, str] = Field(default_factory=dict)
+    additional_formats: dict[ReportFormat, str] = Field(default_factory=dict[ReportFormat, str])
     rendered_at: UtcDatetime
     template_version: Annotated[str, Field(min_length=1)]
     contains_disclaimer: bool = False

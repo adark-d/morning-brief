@@ -205,12 +205,15 @@ class Settings(BaseSettings):
         config_dir = Path(__file__).parent.parent.parent.parent / "config"
         default_yaml = config_dir / "default.yaml"
 
-        # Read the env var directly to decide which env-specific file to load
-        env_name = (
-            init_settings.init_kwargs.get("environment")
-            if hasattr(init_settings, "init_kwargs")
-            else None
-        )
+        # Decide which env-specific file to load. An explicit environment passed to
+        # Settings(...) wins; otherwise fall back to the env var (defaulting to dev).
+        # An explicit environment passed to Settings(...) wins; otherwise fall back to
+        # the env var (defaulting to development). Only InitSettingsSource carries
+        # init_kwargs, and pydantic-settings leaves it unannotated, so read it
+        # defensively via getattr (returns {} for any other source type).
+        init_kwargs: dict[str, object] = getattr(init_settings, "init_kwargs", {})
+        explicit = init_kwargs.get("environment")
+        env_name = str(explicit) if explicit is not None else None
         if env_name is None:
             import os
 
