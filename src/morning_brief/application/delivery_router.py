@@ -61,6 +61,16 @@ class ChannelRouter:
                     f"required by channel '{target.name}'"
                 )
 
+    @property
+    def all_recipients(self) -> tuple[str, ...]:
+        """The de-duplicated union of recipients across every target, sorted.
+
+        The orchestrator uses this as the single source of truth for the recipient
+        set its delivery guardrails validate against.
+        """
+        seen = {recipient for target in self._targets for recipient in target.recipients}
+        return tuple(sorted(seen))
+
     async def deliver(self, analysis: BriefAnalysis) -> tuple[DeliveryResult, ...]:
         """Render and deliver to every target. Returns all per-recipient results."""
         cache: dict[ReportFormat, RenderedReport] = {}
