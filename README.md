@@ -30,7 +30,7 @@ This repo implements the architecture, guardrails, and orchestration patterns re
 | Logging | structlog |
 | Retries | tenacity |
 | Testing | pytest |
-| Tooling | uv, ruff, mypy (strict) |
+| Tooling | uv, ruff, mypy + pyright (strict), pip-audit |
 
 ## Quick start
 
@@ -39,27 +39,40 @@ Requires Python 3.13 and [uv](https://docs.astral.sh/uv/).
 ```bash
 uv sync                         # install dependencies
 uv run pytest                   # run tests
-uv run ruff check src/          # lint
-uv run mypy src/                # typecheck
+uv run ruff check src/ tests/   # lint
+uv run mypy src/ tests/         # typecheck
+uv run pyright                  # second type checker (strict)
 ```
+
+## Running
+
+```bash
+uv run morning-brief run                              # one brief, then exit
+uv run morning-brief serve --host 0.0.0.0 --port 8000 # the HTTP API (docs at /docs)
+```
+
+Configuration comes from `config/*.yaml` plus `MORNING_BRIEF_*` environment variables (secrets only — copy `.env.example` to `.env`). **Scheduling is owned by the deployment**: point a cron / Kubernetes CronJob / cloud scheduler at `morning-brief run` using the cadence in `schedule_cron` (default 07:00 GMT on weekdays). Required deployment controls (TLS, ingress rate limiting) are documented in [SECURITY.md](SECURITY.md).
 
 ## Status
 
-Phase 1 (core domain) in progress. See [implementation plan](#implementation-plan) below.
+Feature-complete and tested end-to-end: domain model, configuration, pluggable
+infrastructure (data, LLM, delivery, storage) with mocks, versioned prompts,
+three-tier guardrails, the pipeline orchestrator and composition root, the FastAPI
+layer, integration tests, and CI. Deployment controls (TLS, scheduling, ingress
+rate limiting) are documented in [SECURITY.md](SECURITY.md).
 
-## Implementation plan
+## What's built
 
-| Phase | Focus | Status |
-|---|---|---|
-| 1 | Core domain — models, interfaces, exceptions | In progress |
-| 2 | Configuration | Pending |
-| 3 | Infrastructure implementations + mocks | Pending |
-| 4 | Prompt layer — registry, builder, validator | Pending |
-| 5 | Guardrails — input, output, delivery | Pending |
-| 6 | Pipeline orchestrator | Pending |
-| 7 | API layer | Pending |
-| 8 | Integration and end-to-end testing | Pending |
-| 9 | Scheduler and production hardening | Pending |
+- **Domain** — frozen Pydantic models, dependency-inverted interfaces, a typed
+  exception hierarchy
+- **Pipeline** — fetch → input guardrails → prompt → analyse → output guardrails →
+  render → deliver → immutable audit, with graceful degradation
+- **Safety** — input, output, and delivery guardrails; CRITICAL aborts, WARNING
+  flags and continues
+- **Interfaces** — REST API (trigger + audit retrieval, fail-closed bearer auth)
+  and a CLI (`run` for scheduled execution, `serve` for the API)
+- **Quality** — strict typing (mypy + pyright), full test suite, and dependency
+  scanning, all enforced in CI
 
 ## Owner
 
