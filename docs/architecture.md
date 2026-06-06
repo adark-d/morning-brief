@@ -76,25 +76,25 @@ One run, traced through the code:
 ```mermaid
 sequenceDiagram
     autonumber
-    participant S as Scheduler / API
+    participant S as Scheduler or API
     participant O as BriefOrchestrator
     participant D as DataProvider
     participant G as Guardrails
-    participant E as AnalysisEngine (LLM)
-    participant R as Renderer + Router
+    participant E as LLM analysis engine
+    participant R as Renderer and Router
     participant A as AuditStore
 
     S->>O: run()
-    O->>D: health_check() then fetch_snapshot()
-    D-->>O: MarketSnapshot (+ data-quality report)
-    O->>G: input tier — yield range · completeness · staleness
-    Note over O,G: CRITICAL → abort; a FAILED BriefRun is still recorded
-    O->>O: build + validate versioned prompt
+    O->>D: health_check then fetch_snapshot
+    D-->>O: MarketSnapshot plus data-quality report
+    O->>G: input tier — yield range, completeness, staleness
+    Note over O,G: CRITICAL aborts the run, but a FAILED BriefRun is still recorded
+    O->>O: build and validate versioned prompt
     O->>E: analyse(snapshot, prompt)
-    E-->>O: BriefAnalysis (validated structure)
-    O->>G: output tier — grounding · confidence · length
-    Note over O,G: WARNING → attach to the run and continue
-    O->>R: render, then delivery tier (whitelist · completeness · disclaimer)
+    E-->>O: BriefAnalysis, structure validated
+    O->>G: output tier — grounding, confidence, length
+    Note over O,G: WARNING is attached to the run and the pipeline continues
+    O->>R: render, then delivery tier (whitelist, completeness, disclaimer)
     O->>R: deliver to channels
     R-->>O: per-recipient DeliveryResults
     O->>A: record(BriefRun)
