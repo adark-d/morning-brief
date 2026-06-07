@@ -1,12 +1,3 @@
-"""The API's error subsystem, in one place.
-
-Everything about how the API reports failure lives here so the contract is easy to
-read and extend: the machine-readable code enum, the response envelope, the typed
-exceptions the routes raise, the handlers that render them, and a helper that
-derives each endpoint's OpenAPI error docs from those same exception classes — so a
-status code and its description are declared exactly once.
-"""
-
 from __future__ import annotations
 
 from collections.abc import Mapping
@@ -25,9 +16,6 @@ from morning_brief.core.exceptions.errors import BriefSystemError
 logger = structlog.get_logger(__name__)
 
 
-# ============================================
-# Error contract
-# ============================================
 class ApiErrorCode(StrEnum):
     """Stable, machine-readable error identifiers returned in every error body."""
 
@@ -49,9 +37,6 @@ class ErrorResponse(BaseModel):
     detail: str = Field(description="Human-readable explanation of the error")
 
 
-# ============================================
-# Typed exceptions the routes raise
-# ============================================
 class ApiError(Exception):
     """An error that maps to a deliberate HTTP response.
 
@@ -69,14 +54,14 @@ class ApiError(Exception):
 
 
 class NotFoundError(ApiError):
-    """No matching resource exists"""
+    """The requested resource does not exist."""
 
     status_code = HTTPStatus.NOT_FOUND
     code = ApiErrorCode.NOT_FOUND
 
 
 class UnauthenticatedError(ApiError):
-    """Missing or invalid credentials"""
+    """Authentication failed: the bearer token is missing or invalid."""
 
     status_code = HTTPStatus.UNAUTHORIZED
     code = ApiErrorCode.UNAUTHENTICATED
@@ -84,15 +69,12 @@ class UnauthenticatedError(ApiError):
 
 
 class AuthNotConfiguredError(ApiError):
-    """Authentication is not configured"""
+    """Authentication is not configured on the server, so protected endpoints are disabled."""
 
     status_code = HTTPStatus.SERVICE_UNAVAILABLE
     code = ApiErrorCode.AUTH_NOT_CONFIGURED
 
 
-# ============================================
-# OpenAPI documentation
-# ============================================
 def error_responses(*errors: type[ApiError]) -> dict[int | str, dict[str, object]]:
     """Derive an OpenAPI ``responses`` map from exception classes.
 
@@ -109,9 +91,6 @@ def error_responses(*errors: type[ApiError]) -> dict[int | str, dict[str, object
     }
 
 
-# ============================================
-# Handlers
-# ============================================
 def register_error_handlers(app: FastAPI) -> None:
     """Install the handlers that render every error as an ``ErrorResponse``."""
     app.add_exception_handler(ApiError, _handle_api_error)
@@ -135,14 +114,14 @@ def _render(
 
 
 async def _handle_api_error(_request: Request, exc: Exception) -> JSONResponse:
-    if not isinstance(exc, ApiError):  # registered only for ApiError; defensive
-        raise exc  # pragma: no cover
+    if not isinstance(exc, ApiError):
+        raise exc
     return _render(exc.status_code, exc.code, exc.detail, exc.headers)
 
 
 async def _handle_validation_error(_request: Request, exc: Exception) -> JSONResponse:
     if not isinstance(exc, RequestValidationError):
-        raise exc  # pragma: no cover
+        raise exc
     detail = "; ".join(
         f"{'.'.join(str(p) for p in error['loc'])}: {error['msg']}" for error in exc.errors()
     )
@@ -160,7 +139,6 @@ async def _handle_unexpected(request: Request, exc: Exception) -> JSONResponse:
 
 
 def _log_and_render_500(event: str, request: Request, exc: Exception) -> JSONResponse:
-    # Log the specifics server-side; return a generic body so internals never leak.
     logger.error(
         event,
         component="api",
