@@ -114,14 +114,14 @@ def _render(
 
 
 async def _handle_api_error(_request: Request, exc: Exception) -> JSONResponse:
-    if not isinstance(exc, ApiError):
-        raise exc
+    if not isinstance(exc, ApiError):  # registered only for ApiError; defensive
+        raise exc  # pragma: no cover
     return _render(exc.status_code, exc.code, exc.detail, exc.headers)
 
 
 async def _handle_validation_error(_request: Request, exc: Exception) -> JSONResponse:
     if not isinstance(exc, RequestValidationError):
-        raise exc
+        raise exc  # pragma: no cover
     detail = "; ".join(
         f"{'.'.join(str(p) for p in error['loc'])}: {error['msg']}" for error in exc.errors()
     )
