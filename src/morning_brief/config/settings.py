@@ -223,13 +223,9 @@ class Settings(BaseSettings):
         wrong YAML would be selected while the `environment` field still reflects it.
         """
         init_kwargs: dict[str, object] = getattr(init_settings, "init_kwargs", {})
-        explicit = init_kwargs.get("environment")
-        if explicit is not None:
-            return str(explicit).lower()
-        os_value = os.environ.get("MORNING_BRIEF_ENVIRONMENT")
-        if os_value:
-            return os_value.lower()
-        dotenv_value = dotenv_settings().get("environment")
-        if dotenv_value:
-            return str(dotenv_value).lower()
-        return "development"
+        return str(
+            init_kwargs.get("environment")
+            or os.environ.get("MORNING_BRIEF_ENVIRONMENT")
+            or dotenv_settings().get("environment")
+            or "development"
+        ).lower()
