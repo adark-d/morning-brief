@@ -1,36 +1,8 @@
-"""BriefOrchestrator — the pipeline flow (Layer 3, Section 11 of the architecture).
-
-Composes the injected interfaces into one run:
-
-    health-check -> fetch -> input guardrails -> build+validate prompt ->
-    analyse -> output guardrails -> delivery guardrails -> deliver -> audit
-
-The orchestrator depends only on abstractions (interfaces, guardrail tuples, the
-runner functions). The composition root supplies the concrete implementations.
-
-Graceful degradation is the governing principle:
-    - CRITICAL guardrail findings and unrecoverable component errors abort the run;
-    a FAILED BriefRun is still recorded — every run is auditable.
-    - WARNING findings are attached to the run as BriefError records and the
-    pipeline continues.
-
-A run accumulates state in a private, mutable ``_RunState``; the immutable
-``BriefRun`` audit record is built once, at the end, when every value is known.
-
-Note on delivery guardrails (the one tier that inspects a rendered report): they
-run here, in the orchestrator, against a single render produced by the injected
-primary renderer. Today there is one real channel (email) and one renderer, so
-this render is identical to what the router sends, and keeping all three guardrail
-tiers aggregating through the orchestrator is the simpler, single-responsibility
-design. When a second real channel/renderer is added, per-channel delivery
-validation should move into the ChannelRouter (and its contract grow to return
-guardrail outcomes) so each distinct render is validated against what is sent.
-"""
-
 from __future__ import annotations
 
 import uuid
 from collections.abc import Callable
+from contextlib import AbstractContextManager
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from typing import NoReturn
@@ -67,6 +39,7 @@ from morning_brief.core.models.audit import (
 )
 from morning_brief.core.models.market_data import MarketSnapshot
 from morning_brief.guardrails.runner import run_delivery, run_input, run_output
+from morning_brief.observability.timing import log_duration
 from morning_brief.prompts import PromptBuilder, PromptValidator
 
 logger = structlog.get_logger(__name__)
@@ -155,20 +128,42 @@ class BriefOrchestrator:
             delivered=run.delivered_count,
             recipients=run.total_recipients,
             errors=len(run.errors),
+            duration_seconds=run.duration_seconds,
         )
         return run
 
-    # ------------------------------------------------------------------ steps
     async def _execute(self, state: _RunState) -> None:
-        await self._preflight(state)
-        snapshot = await self._fetch_snapshot(state)
+        with self._timed(state, "preflight"):
+            await self._preflight(state)
+        with self._timed(state, "fetch_data"):
+            snapshot = await self._fetch_snapshot(state)
         state.snapshot = snapshot
-        self._run_input_guardrails(state, snapshot)
-        prompt, version = self._build_prompt(state, snapshot)
-        analysis = await self._analyse(state, snapshot, prompt, version)
+        with self._timed(state, "input_guardrails"):
+            self._run_input_guardrails(state, snapshot)
+        with self._timed(state, "build_prompt"):
+            prompt, version = self._build_prompt(state, snapshot)
+        with self._timed(state, "analysis"):
+            analysis = await self._analyse(state, snapshot, prompt, version)
         state.analysis = analysis
-        self._run_output_guardrails(state, snapshot, analysis)
-        await self._deliver(state, analysis)
+        with self._timed(state, "output_guardrails"):
+            self._run_output_guardrails(state, snapshot, analysis)
+        with self._timed(state, "delivery"):
+            await self._deliver(state, analysis)
+
+    def _timed(self, state: _RunState, stage: str) -> AbstractContextManager[None]:
+        """Time a pipeline stage, emitting one ``stage_timing`` log line per stage.
+
+        The event name is deliberately outcome-neutral: a stage that aborts still
+        logged its real duration, and its failure is recorded separately.
+        """
+        return log_duration(
+            logger,
+            "stage_timing",
+            run_id=state.run_id,
+            component="orchestrator",
+            severity="info",
+            stage=stage,
+        )
 
     async def _preflight(self, state: _RunState) -> None:
         health = await self._data_provider.health_check()
@@ -256,7 +251,6 @@ class BriefOrchestrator:
 
         state.delivery_results = await self._router.deliver(analysis)
 
-    # ------------------------------------------------------------- finalising
     def _finalise(self, state: _RunState) -> BriefRun:
         completed_at = self._now()
         return BriefRun(
@@ -298,7 +292,6 @@ class BriefOrchestrator:
                 error=str(exc),
             )
 
-    # --------------------------------------------------------------- helpers
     def _reject_all(self, recipients: tuple[str, ...]) -> tuple[DeliveryResult, ...]:
         now = self._now()
         return tuple(
