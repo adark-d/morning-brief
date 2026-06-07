@@ -1,20 +1,6 @@
-"""Application settings — the single source of truth for all configuration.
-
-Uses Pydantic Settings to load values from (in order of precedence):
-    1. Environment variables (highest priority)
-    2. Environment-specific YAML file (e.g. config/environments/production.yaml)
-    3. Default YAML file (config/default.yaml)
-    4. Field defaults defined below (lowest priority)
-
-The active environment is determined by the MORNING_BRIEF_ENV environment variable.
-Defaults to "development" if not set.
-
-Secrets (API keys, recipient lists) MUST come from environment variables only.
-YAML files should never contain credentials.
-"""
-
 from __future__ import annotations
 
+import os
 from enum import StrEnum
 from pathlib import Path
 from typing import Annotated
@@ -28,9 +14,6 @@ from pydantic_settings import (
 )
 
 
-# ============================================
-# Enums
-# ============================================
 class Environment(StrEnum):
     DEVELOPMENT = "development"
     STAGING = "staging"
@@ -46,12 +29,7 @@ class LogLevel(StrEnum):
     CRITICAL = "CRITICAL"
 
 
-# ============================================
-# Sub-models (one per concern)
-# ============================================
 class DataProviderSettings(BaseModel):
-    """Configuration for the active data provider."""
-
     name: Annotated[str, Field(description="Provider implementation, e.g. 'yfinance'")] = "yfinance"
     timeout_seconds: Annotated[float, Field(gt=0, le=120)] = 10.0
     staleness_threshold_hours: Annotated[float, Field(gt=0, le=24)] = 4.0
@@ -59,8 +37,6 @@ class DataProviderSettings(BaseModel):
 
 
 class LLMSettings(BaseModel):
-    """Configuration for the analysis engine."""
-
     provider: Annotated[str, Field(description="LLM provider, e.g. 'anthropic'")] = "anthropic"
     model: Annotated[str, Field(min_length=1)] = "claude-opus-4-7"
     fallback_model: str | None = None
@@ -72,8 +48,6 @@ class LLMSettings(BaseModel):
 
 
 class EmailChannelSettings(BaseModel):
-    """SMTP configuration for the email delivery channel."""
-
     recipients: tuple[str, ...] = ()
     smtp_host: str = "localhost"
     smtp_port: Annotated[int, Field(gt=0, le=65535)] = 587
@@ -98,8 +72,6 @@ class DeliverySettings(BaseModel):
 
 
 class PromptSettings(BaseModel):
-    """Configuration for the prompt layer."""
-
     system_prompt_name: str = "senior_analyst"
     system_prompt_version: str = "v1.0"
     context_template_name: str = "market_data"
@@ -111,16 +83,10 @@ class PromptSettings(BaseModel):
 
 
 class GuardrailSettings(BaseModel):
-    """Configuration for the safety layer."""
-
     # Input guardrails
     yield_min_pct: Annotated[float, Field(ge=-5.0, le=25.0)] = 0.1
     yield_max_pct: Annotated[float, Field(ge=-5.0, le=25.0)] = 20.0
     min_yield_maturities_required: Annotated[int, Field(ge=1, le=10)] = 3
-
-    # Staleness (input guardrail): WARNING past warn, CRITICAL abort past reject.
-    # Distinct from data.staleness_threshold_hours, which the provider uses to set
-    # the is_stale flag at fetch time — the guardrail also honours that flag.
     staleness_warn_after_hours: Annotated[float, Field(gt=0, le=72)] = 6.0
     staleness_reject_after_hours: Annotated[float, Field(gt=0, le=72)] = 24.0
 
@@ -131,8 +97,6 @@ class GuardrailSettings(BaseModel):
 
 
 class AuditSettings(BaseModel):
-    """Configuration for the audit store."""
-
     backend: Annotated[
         str, Field(description="Backend implementation, e.g. 'json', 'postgres'")
     ] = "json"
@@ -141,8 +105,6 @@ class AuditSettings(BaseModel):
 
 
 class ObservabilitySettings(BaseModel):
-    """Configuration for logging and metrics."""
-
     log_level: LogLevel = LogLevel.INFO
     json_logs: bool = True
     metrics_enabled: bool = True
@@ -159,9 +121,6 @@ class ApiSettings(BaseModel):
     auth_token: SecretStr | None = None
 
 
-# ============================================
-# Top-level Settings
-# ============================================
 class Settings(BaseSettings):
     """Top-level application settings.
 
@@ -233,21 +192,7 @@ class Settings(BaseSettings):
         """
         config_dir = Path(__file__).parent.parent.parent.parent / "config"
         default_yaml = config_dir / "default.yaml"
-
-        # Decide which env-specific file to load. An explicit environment passed to
-        # Settings(...) wins; otherwise fall back to the env var (defaulting to dev).
-        # An explicit environment passed to Settings(...) wins; otherwise fall back to
-        # the env var (defaulting to development). Only InitSettingsSource carries
-        # init_kwargs, and pydantic-settings leaves it unannotated, so read it
-        # defensively via getattr (returns {} for any other source type).
-        init_kwargs: dict[str, object] = getattr(init_settings, "init_kwargs", {})
-        explicit = init_kwargs.get("environment")
-        env_name = str(explicit) if explicit is not None else None
-        if env_name is None:
-            import os
-
-            env_name = os.environ.get("MORNING_BRIEF_ENVIRONMENT", "development").lower()
-
+        env_name = cls._resolve_environment(init_settings, dotenv_settings)
         env_yaml = config_dir / "environments" / f"{env_name}.yaml"
 
         sources: list[PydanticBaseSettingsSource] = [
@@ -262,3 +207,29 @@ class Settings(BaseSettings):
             sources.append(YamlConfigSettingsSource(settings_cls, default_yaml))
 
         return tuple(sources)
+
+    @staticmethod
+    def _resolve_environment(
+        init_settings: PydanticBaseSettingsSource,
+        dotenv_settings: PydanticBaseSettingsSource,
+    ) -> str:
+        """Resolve which environment YAML to load.
+
+        Precedence: an explicit ``Settings(environment=...)`` wins, then
+        MORNING_BRIEF_ENVIRONMENT in the OS environment, then the same key from the
+        .env file, then the "development" default. The .env fallback is essential:
+        pydantic loads .env as a settings source but never exports it to
+        os.environ, so an environment set only in .env must be read back here or the
+        wrong YAML would be selected while the `environment` field still reflects it.
+        """
+        init_kwargs: dict[str, object] = getattr(init_settings, "init_kwargs", {})
+        explicit = init_kwargs.get("environment")
+        if explicit is not None:
+            return str(explicit).lower()
+        os_value = os.environ.get("MORNING_BRIEF_ENVIRONMENT")
+        if os_value:
+            return os_value.lower()
+        dotenv_value = dotenv_settings().get("environment")
+        if dotenv_value:
+            return str(dotenv_value).lower()
+        return "development"
