@@ -4,8 +4,6 @@ A mental model for how an AI Forward Deployed Engineer (FDE) builds, reuses, and
 contributes AI solutions — using this project (the morning brief) as the worked
 example. Written to be re-read on its own.
 
----
-
 ## The six responsibilities this maps to
 
 For reference throughout this document:
@@ -18,8 +16,6 @@ For reference throughout this document:
 | **R4** | Run working sessions with business users, gather feedback, and iterate on solutions. |
 | **R5** | Build and document reusable artifacts (prompt templates, workflows, configurable components). |
 | **R6** | Contribute code, tools, and patterns back to the central AI platform as firm-wide reusable assets. |
-
----
 
 ## 1. The most important misconception to clear up
 
@@ -35,8 +31,6 @@ For reference throughout this document:
 You are not writing less code. You are writing **higher-leverage** code: the
 recipe and the plating, not the oven.
 
----
-
 ## 2. The kitchen analogy
 
 The central AI platform is the **kitchen**: ovens, gas, electricity, extractor
@@ -51,8 +45,6 @@ fans, the delivery van. You don't rebuild the oven every time you cook.
 In this project, you *built an oven from scratch* (`AnthropicAnalysisEngine`) —
 on purpose, to learn how ovens work. On the job, the oven already exists; you
 cook with it.
-
----
 
 ## 3. The platform provides the plumbing; you build on top
 
@@ -73,8 +65,6 @@ cook with it.
 - The **domain logic** specific to the business problem.
 - The **trust and quality work** — what "good" looks like, the guardrails,
   the metrics, the iteration with users.
-
----
 
 ## 4. Worked scenario: "Flag the top 3 risk-factor changes in this 10-K vs last year"
 
@@ -118,8 +108,6 @@ You didn't write 500 lines of gateway plumbing, because the platform has it.
 - **R1** — before any of this, you framed the problem ("compare risk sections,
   surface the 3 most material changes") with a clear success measure.
 
----
-
 ## 5. You have TWO reuse audiences — and they need different things
 
 Conflating these is the most common FDE mistake.
@@ -145,8 +133,6 @@ sections = platform.documents.extract_sections(filing, kind="risk_factors")
 That is you writing **platform code** — promoting a one-off helper into a
 firm-wide asset.
 
----
-
 ## 6. What makes an artifact actually reusable / contributable
 
 When the goal is "reusable across teams" or "contributable to the platform," an
@@ -163,8 +149,6 @@ artifact needs four properties. Practice all four:
    against both the JSON and mock implementations.)* → **R6**
 4. **Documented for the consumer** — a non-author can adopt it from the docs
    alone. The half people skip; your role names it explicitly. → **R5, R6**
-
----
 
 ## 7. The reusability tiers of what we built here
 
@@ -187,8 +171,6 @@ the platform (Tier 1/2) versus keep them team-specific (Tier 3).
 > **second** project actually needs it, not speculatively. The seams already exist,
 > so extraction later is a copy-or-lift job, not a rewrite.
 
----
-
 ## 8. Everything mapped to your responsibilities
 
 | Responsibility | Where it shows up in practice |
@@ -199,8 +181,6 @@ the platform (Tier 1/2) versus keep them team-specific (Tier 3).
 | **R4** — working sessions, feedback, iterate | Prompt versioning is the literal infrastructure for this: iterate prompts from user feedback without code deploys; `prompt_version` metadata lets you prove v2 beat v1. |
 | **R5** — build & document reusable artifacts for teams | Configurable components + prompt templates other teams adopt by changing config. The **document** half matters — docs so a non-author can adopt it. |
 | **R6** — contribute back to the platform | Promote Tier 1/2 patterns into shared platform tools (e.g. `extract_sections`, a `JsonStore[T]`, the contract-test harness). Less frequent, high leverage. |
-
----
 
 ## 9. Why build the plumbing by hand in Projects 1–10 if the platform provides it?
 
@@ -217,8 +197,6 @@ Because the value isn't the code — it's the **calibrated judgment** it gives y
 You build the oven once so that, forever after, you are excellent at cooking with
 one — and you know when the kitchen needs a new appliance.
 
----
-
 ## 10. One-line summary
 
 > Most of the time you write **solution code** — prompts, schemas, and workflows
@@ -226,4 +204,3 @@ one — and you know when the kitchen needs a new appliance.
 > write **platform code** — promoting a reusable pattern back so the whole firm
 > benefits (R6). The architecture you practise in Projects 1–10 trains the
 > judgment to know which is which.
-</content>
