@@ -33,6 +33,7 @@ from morning_brief.infrastructure.data.yfinance_tickers import (
     INSTRUMENT_TICKERS,
     TREASURY_YIELD_TICKERS,
 )
+from morning_brief.observability.timing import log_duration
 
 logger = structlog.get_logger(__name__)
 
@@ -237,18 +238,12 @@ class YFinanceDataProvider(DataProvider):
         latency is logged at DEBUG so a slow individual source can be pinpointed
         without flooding INFO with one line per ticker.
         """
-        start = time.perf_counter()
-        try:
+        with log_duration(
+            logger, "ticker_fetched", level="debug", provider="yfinance", ticker=ticker
+        ):
             return await asyncio.wait_for(
                 asyncio.to_thread(self._fetch_close_with_retry, ticker),
                 timeout=self._timeout,
-            )
-        finally:
-            logger.debug(
-                "ticker_fetched",
-                provider="yfinance",
-                ticker=ticker,
-                duration_ms=round((time.perf_counter() - start) * 1000, 2),
             )
 
     def _fetch_close_with_retry(self, ticker: str) -> float:
