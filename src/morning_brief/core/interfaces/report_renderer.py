@@ -1,12 +1,3 @@
-"""ReportRenderer interface — the contract for any report formatter.
-
-Today: HTML email and plain text. Tomorrow: Slack blocks, PDF, JSON for an API
-consumer. Section 9.3 of the architecture document.
-
-Renderers are pure: they transform a BriefAnalysis into a RenderedReport with no
-I/O. They are therefore synchronous — async would be ceremony for no benefit.
-"""
-
 from __future__ import annotations
 
 from abc import ABC, abstractmethod

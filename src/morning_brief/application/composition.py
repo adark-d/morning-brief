@@ -1,20 +1,3 @@
-"""Composition root — the one place concrete implementations are wired together.
-
-Section 12 / §2.4 of the architecture. Every other module depends only on the
-interfaces in ``core/interfaces``; this module is the single exception: it reads
-``Settings``, selects concrete implementations, and assembles a ``BriefOrchestrator``.
-
-Selection is config-driven (``data.name``, ``llm.provider``, ``audit.backend``,
-``delivery.channels``). Every selector accepts ``"mock"`` so a fully in-memory
-pipeline can run for local development and integration tests without real
-credentials; unknown values fail fast with a ConfigError.
-
-The primary renderer is built once and shared between the orchestrator (which
-renders to validate the delivery guardrails) and the router (which renders to
-send) — keeping the "validated report == sent report" invariant a fact of the
-wiring rather than a coincidence.
-"""
-
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -99,7 +82,6 @@ def build_orchestrator(settings: Settings) -> BriefOrchestrator:
     return build_application(settings).orchestrator
 
 
-# --------------------------------------------------------------- selectors
 def _build_data_provider(settings: Settings) -> DataProvider:
     name = settings.data.name.lower()
     if name == "yfinance":
@@ -181,7 +163,6 @@ def _build_prompt_builder(settings: Settings) -> PromptBuilder:
     return PromptBuilder(PromptRegistry(), selection)
 
 
-# --------------------------------------------------------------- guardrails
 def _build_input_guardrails(settings: Settings) -> tuple[InputGuardrail, ...]:
     g = settings.guardrails
     return (

@@ -1,18 +1,3 @@
-"""Tests for YFinanceDataProvider with the yfinance library mocked.
-
-These exercise the provider's logic without hitting the network. yfinance is
-stubbed per ticker so behaviour is deterministic across retries. We cover:
-    - Successful full fetch
-    - Partial failure: an empty result for one source is recorded, others survive
-    - Partial failure: an *unexpected* error in one source does not abort the rest
-    - Total failure (all sources fail) -> APIUnavailableError
-    - Retry: a transient failure that recovers on a later attempt succeeds
-    - Health check (healthy / unhealthy)
-
-For genuine end-to-end testing against the live Yahoo Finance API, see
-tests/integration/test_yfinance_live.py (marked with pytest.mark.slow).
-"""
-
 from __future__ import annotations
 
 from collections.abc import Iterator
@@ -29,9 +14,6 @@ from morning_brief.infrastructure.data.yfinance_data_provider import YFinanceDat
 _NO_BACKOFF = 0.0
 
 
-# ============================================
-# Helpers
-# ============================================
 def _frame(close_value: float | None) -> pd.DataFrame:
     """yfinance-shaped frame; empty when close_value is None."""
     return pd.DataFrame({"Close": [] if close_value is None else [close_value]})
@@ -53,9 +35,6 @@ def yfinance_module() -> Iterator[MagicMock]:
         yield mock_yf
 
 
-# ============================================
-# Successful fetches
-# ============================================
 @pytest.mark.asyncio
 async def test_fetch_snapshot_with_all_tickers_succeeding(
     yfinance_module: MagicMock,
@@ -71,14 +50,10 @@ async def test_fetch_snapshot_with_all_tickers_succeeding(
     assert snapshot.data_quality.is_complete
 
 
-# ============================================
-# Partial failures — graceful degradation
-# ============================================
 @pytest.mark.asyncio
 async def test_empty_result_for_one_source_is_recorded_others_survive(
     yfinance_module: MagicMock,
 ) -> None:
-    """A single empty ticker is recorded as failed; the rest still produce data."""
     failing = "GBPUSD=X"  # FX pair GBP/USD
 
     def behaviour(symbol: str) -> MagicMock:
@@ -123,14 +98,10 @@ async def test_unexpected_error_in_one_source_does_not_abort_the_rest(
     assert len(snapshot.fx) == 4
 
 
-# ============================================
-# Total failure
-# ============================================
 @pytest.mark.asyncio
 async def test_fetch_snapshot_raises_when_all_sources_fail(
     yfinance_module: MagicMock,
 ) -> None:
-    """If every ticker returns no data, raise APIUnavailableError."""
     yfinance_module.Ticker.return_value = _ticker(close_value=None)
 
     provider = YFinanceDataProvider(timeout_seconds=2.0, retry_backoff_seconds=_NO_BACKOFF)
@@ -139,14 +110,10 @@ async def test_fetch_snapshot_raises_when_all_sources_fail(
         await provider.fetch_snapshot()
 
 
-# ============================================
-# Retry behaviour
-# ============================================
 @pytest.mark.asyncio
 async def test_transient_failure_recovers_on_retry(
     yfinance_module: MagicMock,
 ) -> None:
-    """An empty frame on the first attempt, data on the second, ends up succeeding."""
     attempts: dict[str, int] = {}
 
     def behaviour(symbol: str) -> MagicMock:
@@ -172,7 +139,6 @@ async def test_transient_failure_recovers_on_retry(
 async def test_retries_are_bounded_by_max_attempts(
     yfinance_module: MagicMock,
 ) -> None:
-    """A persistently empty ticker is retried exactly max_attempts times, then fails."""
     attempts: dict[str, int] = {}
 
     def behaviour(symbol: str) -> MagicMock:
@@ -193,9 +159,6 @@ async def test_retries_are_bounded_by_max_attempts(
     assert all(count == 2 for count in attempts.values())
 
 
-# ============================================
-# Health check
-# ============================================
 @pytest.mark.asyncio
 async def test_health_check_healthy_when_yfinance_responds(
     yfinance_module: MagicMock,

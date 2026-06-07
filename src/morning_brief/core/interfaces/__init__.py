@@ -1,13 +1,3 @@
-"""Public API for the interfaces (abstract base classes).
-
-Import interfaces from this package, not from the specific modules:
-
-    from morning_brief.core.interfaces import (
-        DataProvider, AnalysisEngine, ReportRenderer, DeliveryChannel,
-        AuditStore, InputGuardrail, OutputGuardrail, DeliveryGuardrail,
-    )
-"""
-
 from morning_brief.core.interfaces.analysis_engine import AnalysisEngine
 from morning_brief.core.interfaces.audit_store import AuditStore
 from morning_brief.core.interfaces.base import HealthState, HealthStatus

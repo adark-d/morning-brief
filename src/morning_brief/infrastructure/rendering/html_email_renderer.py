@@ -1,13 +1,3 @@
-"""HTML email + plain text ReportRenderer using bundled Jinja2 templates.
-
-Pure, synchronous transformation: BriefAnalysis -> RenderedReport. Templates are
-loaded once at construction. HTML output is autoescaped to neutralise any markup
-in the analysis text; the plain-text template is left literal. A standard
-informational disclaimer is always appended.
-
-Implements core.interfaces.report_renderer.ReportRenderer.
-"""
-
 from __future__ import annotations
 
 from datetime import UTC, datetime

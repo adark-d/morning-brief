@@ -1,19 +1,3 @@
-"""Anthropic Claude implementation of the AnalysisEngine interface.
-
-The LLM gateway. Responsibilities layered on top of a raw Claude call:
-    - structured output: Claude returns JSON validated against the analysis schema
-    - validation retry: one corrective retry if the response fails our constraints
-    - fallback: fall back to a secondary model if the primary is unavailable
-    - cost tracking: per-call USD cost recorded on the returned BriefAnalysis
-
-Transport-level retries (429 / 5xx / connection) are handled by the Anthropic SDK
-itself via ``max_retries`` — the SDK *is* the gateway here, so wrapping it in another
-retry layer would double-retry. We add only the schema-validation retry, which the
-SDK does not do.
-
-Implements core.interfaces.analysis_engine.AnalysisEngine.
-"""
-
 from __future__ import annotations
 
 import time
@@ -150,9 +134,6 @@ class AnthropicAnalysisEngine(AnalysisEngine):
             latency_ms=elapsed_ms,
         )
 
-    # ============================================
-    # Internal
-    # ============================================
     async def _analyse_with_model(
         self,
         model: str,
@@ -232,9 +213,6 @@ class AnthropicAnalysisEngine(AnalysisEngine):
         return draft, response.usage
 
 
-# ============================================
-# Module helpers
-# ============================================
 def _estimate_cost(model: str, usage: Usage) -> float | None:
     prices = _PRICING.get(model)
     if prices is None:

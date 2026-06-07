@@ -1,17 +1,3 @@
-"""API-key authentication (Layer 2 gateway).
-
-Uses FastAPI's ``HTTPBearer`` security scheme so the OpenAPI docs advertise the
-requirement (the Swagger "Authorize" button and a lock on each protected route) and
-the token is parsed for us. ``auto_error=False`` keeps policy in our hands: we
-enforce it and raise our own ``ApiError`` so failures use the shared error envelope.
-
-Fail-closed: a request is refused when no token is configured, so the system can
-never accidentally serve an unauthenticated API. Comparison is constant-time.
-
-Rate limiting (the other L2 concern) is deferred to the deployment-hardening phase:
-correct limiting needs state shared across worker processes.
-"""
-
 from __future__ import annotations
 
 import secrets

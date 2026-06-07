@@ -1,12 +1,3 @@
-"""In-memory mock implementation of DataProvider for testing.
-
-Returns deterministic, valid market data without any network access. The mock
-is fully featured — it can simulate partial failures, latency, or unavailability
-via constructor flags. Tests use this to exercise edge cases.
-
-Implements core.interfaces.data_provider.DataProvider.
-"""
-
 from __future__ import annotations
 
 from datetime import UTC, datetime
@@ -22,7 +13,6 @@ from morning_brief.core.models.market_data import (
     YieldPoint,
 )
 
-# Default deterministic data used by the mock
 _DEFAULT_YIELDS: dict[str, float] = {
     "13W": 5.32,
     "5Y": 4.18,

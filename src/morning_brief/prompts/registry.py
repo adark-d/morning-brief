@@ -1,13 +1,3 @@
-"""PromptRegistry — loads versioned prompt components from YAML templates.
-
-Components live under ``templates/<kind>/<name>_<version>.yaml`` and are loaded by
-name and version at runtime. Old versions are never deleted — they remain so past
-runs (which record the version they used) stay reproducible.
-
-Implements the prompt-registry capabilities from Section 12.2: load by name and
-version, list available versions, and validate component structure on load.
-"""
-
 from __future__ import annotations
 
 from pathlib import Path
@@ -42,9 +32,6 @@ class PromptRegistry:
         self._cache: dict[tuple[str, str, str], dict[str, object]] = {}
         logger.info("prompt_registry_initialised", root=str(self._root))
 
-    # ============================================
-    # Typed loaders
-    # ============================================
     def system(self, name: str, version: str) -> SystemPrompt:
         return SystemPrompt.model_validate(self._load("system", name, version))
 
@@ -66,9 +53,6 @@ class PromptRegistry:
         versions = [path.stem.removeprefix(prefix) for path in directory.glob(f"{prefix}*.yaml")]
         return tuple(sorted(versions))
 
-    # ============================================
-    # Internal
-    # ============================================
     def _subdir(self, kind: str) -> str:
         if kind not in _SUBDIRS:
             raise PromptError(f"Unknown prompt component kind: {kind!r}")

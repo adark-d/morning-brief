@@ -1,13 +1,3 @@
-"""JSON serialization helpers for the audit store.
-
-Pydantic v2 handles most of this automatically via model_dump_json(), but we
-need to verify the BriefRun → JSON → BriefRun round-trip preserves all
-constraints — particularly timezone-aware UTC datetimes and tuple immutability.
-
-These helpers are not part of the public API. They're internal to the JSON
-audit store implementation.
-"""
-
 from __future__ import annotations
 
 from morning_brief.core.models.audit import BriefRun

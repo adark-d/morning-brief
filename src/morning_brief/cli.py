@@ -1,14 +1,3 @@
-"""Command-line entry point.
-
-Commands:
-  run    — execute one brief and exit. This is the unit a scheduler invokes; the
-           cadence itself is owned by an external scheduler (cron / k8s CronJob /
-           cloud scheduler) configured from `schedule_cron`, not an in-process daemon.
-  serve  — run the HTTP API.
-
-Logging is configured once here, at process startup.
-"""
-
 from __future__ import annotations
 
 import argparse

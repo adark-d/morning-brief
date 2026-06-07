@@ -1,10 +1,3 @@
-"""Unit tests for configuration loading.
-
-Cover the behaviour layered on Pydantic Settings: the YAML+env load succeeds,
-env vars override nested settings, invalid/out-of-range values surface as the
-domain ConfigError hierarchy, secrets stay masked, and get_settings caches.
-"""
-
 from __future__ import annotations
 
 from collections.abc import Iterator

@@ -1,11 +1,3 @@
-"""Prompt-layer data types.
-
-The component models parse and validate the YAML template files (strict + extra
-forbidden, so a typo in a template file fails loudly). AssembledPrompt and
-PromptSelection are lightweight value objects used to hand a built prompt to the
-analysis engine.
-"""
-
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -25,9 +17,6 @@ class _Component(BaseModel):
     model_config = ConfigDict(frozen=True, extra="forbid")
 
 
-# ============================================
-# Component models (parsed from YAML templates)
-# ============================================
 class SystemPrompt(_Component):
     """The analyst persona and behaviour, plus explicit guardrail instructions."""
 
@@ -68,9 +57,6 @@ class FewShotExamples(_Component):
     examples: tuple[FewShotExample, ...]
 
 
-# ============================================
-# Value objects
-# ============================================
 @dataclass(frozen=True, slots=True)
 class PromptSelection:
     """Which component name+version to load for each part of the prompt.

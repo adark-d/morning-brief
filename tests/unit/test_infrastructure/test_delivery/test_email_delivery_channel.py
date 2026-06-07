@@ -1,9 +1,3 @@
-"""Tests for EmailDeliveryChannel with aiosmtplib mocked.
-
-No real SMTP traffic. We stub aiosmtplib to verify per-recipient delivery,
-failure isolation, per-recipient timeout, and health checks.
-"""
-
 from __future__ import annotations
 
 import asyncio

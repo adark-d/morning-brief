@@ -1,5 +1,3 @@
-"""Tests for PromptValidator completeness and token-budget checks."""
-
 from __future__ import annotations
 
 import pytest

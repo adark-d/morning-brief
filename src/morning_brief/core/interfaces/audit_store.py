@@ -1,13 +1,3 @@
-"""AuditStore interface — the contract for any audit-record persistence.
-
-Today: JSON files for dev. Tomorrow: PostgreSQL for production.
-Section 9.5 of the architecture document.
-
-Audit records are immutable. The interface enforces append-only semantics —
-there is no `update()` method by design. A bug in a stored record is fixed
-by recording a correcting run, never by mutating the existing one.
-"""
-
 from __future__ import annotations
 
 from abc import ABC, abstractmethod

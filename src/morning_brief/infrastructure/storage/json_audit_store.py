@@ -1,18 +1,3 @@
-"""File-based JSON implementation of the AuditStore interface.
-
-Production reliability features:
-    - Atomic writes (write to temp file, rename) — no partially-written records
-    - Idempotent on run_id — re-recording the same run is a no-op
-    - Date-partitioned directory structure for human inspection
-    - Structured logging on every operation
-
-This is the default audit backend for development and pre-production. For
-high-volume production use, a database-backed implementation (Postgres) will
-be added as a separate AuditStore implementation.
-
-Implements core.interfaces.audit_store.AuditStore.
-"""
-
 from __future__ import annotations
 
 import asyncio
@@ -69,9 +54,6 @@ class JsonAuditStore(AuditStore):
         self._root.mkdir(parents=True, exist_ok=True, mode=_DIR_MODE)
         logger.info("audit_store_initialised", root=str(self._root))
 
-    # ============================================
-    # Public interface — implements AuditStore
-    # ============================================
     async def record(self, run: BriefRun) -> None:
         target_path = self._path_for_run(run)
         existing = await self._read_if_exists(target_path)
@@ -148,9 +130,6 @@ class JsonAuditStore(AuditStore):
             latency_ms=elapsed_ms,
         )
 
-    # ============================================
-    # Internal helpers — synchronous, called via asyncio.to_thread
-    # ============================================
     def _path_for_run(self, run: BriefRun) -> Path:
         date_partition = run.triggered_at.date().isoformat()
         return self._root / date_partition / f"run_{run.run_id}.json"

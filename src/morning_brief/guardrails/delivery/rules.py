@@ -1,14 +1,3 @@
-"""Delivery guardrails — validate a RenderedReport before it is sent.
-
-Protect against wrong or unsafe delivery: unknown recipients, empty reports, and
-missing compliance disclaimers. Section 13.3 of the architecture document.
-
-Note: duplicate-prevention ("one brief per recipient per day") is intentionally
-NOT here — it requires querying the audit store, and guardrails are pure and
-synchronous. It belongs in the orchestrator's delivery step, backed by the
-AuditStore (whose record() is already idempotent per run).
-"""
-
 from __future__ import annotations
 
 from collections.abc import Iterable

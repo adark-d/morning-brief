@@ -1,10 +1,3 @@
-"""Prompt layer — versioned templates, registry, builder, and validator.
-
-Prompts are versioned YAML assets, not strings in code. The registry loads them by
-name and version; the builder assembles them into a complete prompt; the validator
-checks completeness and token budget before the prompt reaches the LLM.
-"""
-
 from morning_brief.prompts.builder import PromptBuilder
 from morning_brief.prompts.models import (
     AssembledPrompt,

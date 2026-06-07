@@ -1,12 +1,3 @@
-"""In-memory mock DeliveryChannel for testing.
-
-Captures what it "delivered" so tests can assert on it, and supports failure
-simulation. Its supported_format is configurable so the ChannelRouter's format
-negotiation and multi-channel fan-out can be exercised without a real transport.
-
-Implements core.interfaces.delivery_channel.DeliveryChannel.
-"""
-
 from __future__ import annotations
 
 from collections.abc import Iterable

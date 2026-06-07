@@ -1,12 +1,3 @@
-"""Deterministic in-memory ReportRenderer for testing.
-
-Produces a minimal but contract-valid RenderedReport without Jinja2, so tests can
-exercise the pipeline without depending on templates. The `fail` flag simulates a
-rendering failure for testing graceful degradation.
-
-Implements core.interfaces.report_renderer.ReportRenderer.
-"""
-
 from __future__ import annotations
 
 from datetime import UTC, datetime

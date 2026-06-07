@@ -1,11 +1,3 @@
-"""End-to-end HTTP test: the full stack through real persistence.
-
-Unlike the API unit tests (which inject a mock store), this drives the real
-composition root with a real on-disk ``JsonAuditStore`` and asserts the
-trigger-then-retrieve round-trip over HTTP — including that the retrieved record
-comes back as the PII-free ``BriefRunResponse`` DTO.
-"""
-
 from __future__ import annotations
 
 from pathlib import Path
