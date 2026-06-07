@@ -5,8 +5,6 @@ be read top-to-bottom as a learning resource: the patterns here — dependency
 inversion, layered safety, immutable audit, controlled API contracts — are the ones
 that separate a production decision-support system from a demo.
 
----
-
 ## 1. What the system does
 
 Morning Brief compresses the ~60 minutes a fixed-income desk spends assembling
@@ -24,8 +22,6 @@ not reach the model, hallucinated numbers must not reach the desk, a partial out
 should degrade gracefully rather than go dark, and every run must be auditable after
 the fact. The architecture exists to make those guarantees structural rather than
 hopeful.
-
----
 
 ## 2. System overview
 
@@ -109,8 +105,6 @@ live in `application/orchestrator.py`.
 Each step can abort (CRITICAL) or warn (WARNING). The orchestrator accumulates state
 as it goes and, at the end, builds one immutable `BriefRun` and persists it — whether
 the run succeeded, partially delivered, or failed.
-
----
 
 ## 3. Layer by layer
 
@@ -217,7 +211,7 @@ same store. Everywhere else sees interfaces; this is where the wiring lives.
 FastAPI, the only layer that knows HTTP. `create_app(settings)` is a factory that
 wires dependencies through FastAPI's override seam (no globals, no `app.state`
 typing holes) and is trivially testable. Endpoints: `POST /briefs/run` (trigger),
-`GET /briefs/{id}` / `?on=<date>` / `/latest` (audit retrieval), `GET /health`.
+`GET /briefs/{id}` / `?date=<date>` / `/latest` (audit retrieval), `GET /health`.
 
 The error subsystem lives in one module (`api/errors.py`): an `ApiErrorCode` enum, a
 single `ErrorResponse` envelope, a typed `ApiError` hierarchy the routes raise, the
@@ -231,13 +225,14 @@ record stays in the store for privileged access.
 
 ### 3.8 `observability/` and the CLI
 
-`observability/logging.py` configures structlog (JSON in prod, console in dev). The
-CLI (`cli.py`, `morning-brief`) has `run` (one brief, exit code reflects outcome) and
-`serve` (the API), configuring logging at startup. Scheduling is external — a cron /
-CronJob invokes `morning-brief run` at the `schedule_cron` cadence; there's no
-in-process daemon to keep alive.
-
----
+`observability/logging.py` configures structlog (JSON in prod, console in dev) and
+`observability/timing.py` provides a `log_duration` context manager that records the
+wall-clock of a block as a structured log line — used to emit per-stage timing in the
+orchestrator and per-provider / per-source timing in the data layer, so latency is
+queryable per run. The CLI (`cli.py`, `morning-brief`) has `run` (one brief, exit code
+reflects outcome) and `serve` (the API), configuring logging at startup. Scheduling is
+external — a cron / CronJob invokes `morning-brief run` at the `schedule_cron` cadence;
+there's no in-process daemon to keep alive.
 
 ## 4. Design decisions & patterns (the core learning)
 
@@ -262,8 +257,6 @@ in-process daemon to keep alive.
 - Audit files are written with restrictive permissions; deployment provides TLS and
   ingress rate limiting.
 
----
-
 ## 5. Testing strategy
 
 - **Unit** (`tests/unit/`) — one module per source module; external dependencies
@@ -279,8 +272,6 @@ in-process daemon to keep alive.
   strict; test code relaxes only the unavoidable third-party-typing noise via a
   pyright `executionEnvironments` block, never by lowering the `src` bar.
 
----
-
 ## 6. Extending the system
 
 The interfaces are the extension points. To add a capability you implement a contract
@@ -295,8 +286,6 @@ and register it in the composition root — nothing else changes.
 - **New API failure mode** → add an `ApiError` subclass; its status, code, and OpenAPI
   docs follow automatically via `error_responses`.
 
----
-
 ## 7. Running & deployment
 
 ```bash
@@ -307,8 +296,6 @@ uv run morning-brief serve   # the HTTP API; docs at /docs
 Configuration: `config/*.yaml` + `MORNING_BRIEF_*` env (secrets via `.env`, see
 `.env.example`). Scheduling, TLS, and rate limiting are deployment concerns — see
 `SECURITY.md` for the controls the deployment must provide.
-
----
 
 ## 8. Concept → file map
 
@@ -326,5 +313,6 @@ Configuration: `config/*.yaml` + `MORNING_BRIEF_*` env (secrets via `.env`, see
 | API error subsystem | `api/errors.py` |
 | Response DTOs | `api/schemas/responses.py` |
 | Logging config | `observability/logging.py` |
+| Stage / provider timing | `observability/timing.py` |
 | CLI / entry point | `cli.py`, `__main__.py` |
 | Security threat model | `SECURITY.md` |
