@@ -1,12 +1,3 @@
-"""DataProvider interface — the contract for any market data source.
-
-Today's implementation is yfinance (free, dev) and Alpha Vantage (production).
-Tomorrow's might be a Bloomberg feed or an internal data warehouse. The orchestrator
-only ever depends on this abstract class — never on a concrete implementation.
-
-Mirrors Section 9.1 of the architecture document.
-"""
-
 from __future__ import annotations
 
 from abc import ABC, abstractmethod

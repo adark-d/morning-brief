@@ -1,13 +1,3 @@
-"""End-to-end pipeline integration tests.
-
-These wire the *real* internal pipeline — the full guardrail set, the prompt layer,
-the HTML renderer, the channel router, and a real on-disk ``JsonAuditStore`` — and
-mock only the network edges (data, LLM, delivery), configured to drive failure and
-degradation paths. Each test asserts both the returned outcome and the record
-retrieved back from the store, so it exercises the seams between layers and the
-audit serialization round-trip, not just a single component's return value.
-"""
-
 from __future__ import annotations
 
 from pathlib import Path

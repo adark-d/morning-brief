@@ -1,10 +1,3 @@
-"""Tests for the HTTP API.
-
-A mock-configured app (mock pipeline + shared in-memory audit store) is driven via
-TestClient. Covers the trigger/read endpoints, the round-trip from a triggered run
-to its audit record, the fail-closed auth gate, and the open health probe.
-"""
-
 from __future__ import annotations
 
 from datetime import UTC, datetime
@@ -48,9 +41,6 @@ def _make_app(*, auth_token: str | None = "secret") -> FastAPI:
     return create_app(_settings(auth_token=auth_token))
 
 
-# ============================================
-# Health (unauthenticated)
-# ============================================
 def test_health_is_open_and_ok() -> None:
     client = TestClient(_make_app())
     response = client.get("/health")
@@ -58,9 +48,6 @@ def test_health_is_open_and_ok() -> None:
     assert response.json() == {"status": "ok"}
 
 
-# ============================================
-# Trigger + retrieve round-trip
-# ============================================
 def test_trigger_run_returns_summary() -> None:
     client = TestClient(_make_app())
     response = client.post("/briefs/run", headers=_AUTH)
@@ -130,21 +117,18 @@ def test_list_by_date_includes_a_triggered_run() -> None:
     client.post("/briefs/run", headers=_AUTH)
 
     today = datetime.now(UTC).date().isoformat()
-    listed = client.get("/briefs", params={"on": today}, headers=_AUTH)
+    listed = client.get("/briefs", params={"date": today}, headers=_AUTH)
     assert listed.status_code == 200
     assert len(listed.json()) >= 1
 
 
 def test_list_by_date_empty_for_a_date_with_no_runs() -> None:
     client = TestClient(_make_app())
-    listed = client.get("/briefs", params={"on": "2000-01-01"}, headers=_AUTH)
+    listed = client.get("/briefs", params={"date": "2000-01-01"}, headers=_AUTH)
     assert listed.status_code == 200
     assert listed.json() == []
 
 
-# ============================================
-# Auth (fail-closed)
-# ============================================
 def test_protected_route_rejects_missing_credentials() -> None:
     client = TestClient(_make_app())
     assert client.post("/briefs/run").status_code == 401
@@ -168,9 +152,6 @@ def test_malformed_authorization_header_is_rejected() -> None:
     assert response.status_code == 401
 
 
-# ============================================
-# Domain-error mapping
-# ============================================
 class _FailingStore(MockAuditStore):
     async def get_by_id(self, run_id: str) -> BriefRun | None:
         _ = run_id
@@ -219,7 +200,7 @@ def test_unexpected_error_maps_to_generic_500() -> None:
 
 def test_invalid_date_returns_422_validation_error() -> None:
     client = TestClient(_make_app())
-    response = client.get("/briefs", params={"on": "not-a-date"}, headers=_AUTH)
+    response = client.get("/briefs", params={"date": "not-a-date"}, headers=_AUTH)
 
     assert response.status_code == 422
     assert response.json()["code"] == "validation_error"

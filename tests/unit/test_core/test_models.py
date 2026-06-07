@@ -1,10 +1,3 @@
-"""Unit tests for the core domain models.
-
-These cover the business rules layered on top of Pydantic — timezone-aware UTC
-enforcement, the custom field constraints, computed properties, immutability, and
-JSON round-tripping — not Pydantic's own machinery.
-"""
-
 from __future__ import annotations
 
 from collections.abc import Callable
@@ -35,9 +28,6 @@ _AWARE = datetime(2026, 5, 10, 7, 0, tzinfo=UTC)
 _NAIVE = datetime(2026, 5, 10, 7, 0)  # intentionally naive, to prove it's rejected
 
 
-# ============================================
-# Timezone-aware UTC enforcement (the UtcDatetime rule)
-# ============================================
 _NAIVE_DATETIME_BUILDERS: dict[str, Callable[[], object]] = {
     "YieldPoint": lambda: YieldPoint(maturity="10Y", yield_pct=4.4, timestamp=_NAIVE),
     "FXPoint": lambda: FXPoint(pair="GBP/USD", rate=1.27, timestamp=_NAIVE),
@@ -82,9 +72,6 @@ def test_aware_non_utc_datetime_is_normalised_to_utc() -> None:
     assert point.timestamp == datetime(2026, 5, 10, 7, 0, tzinfo=UTC)
 
 
-# ============================================
-# Custom field constraints (not Pydantic's own)
-# ============================================
 def test_yield_point_rejects_decimal_form_yield() -> None:
     # 0.0442 is the decimal-form bug; range is percent (e.g. 4.42). Out of range -> ok,
     # but an absurd percent must be rejected.
@@ -112,9 +99,6 @@ def test_brief_analysis_key_signals_above_maximum_rejected() -> None:
         make_brief_analysis(key_signals=tuple(f"signal {i}" for i in range(6)))
 
 
-# ============================================
-# Immutability and extra-field rejection
-# ============================================
 def test_frozen_model_rejects_mutation() -> None:
     point = make_yield_point()
     with pytest.raises(ValidationError):
@@ -126,9 +110,6 @@ def test_extra_fields_are_forbidden() -> None:
         YieldPoint(maturity="10Y", yield_pct=4.4, timestamp=_AWARE, bogus=1)  # type: ignore[call-arg]
 
 
-# ============================================
-# Computed properties
-# ============================================
 def test_data_quality_report_success_rate_and_completeness() -> None:
     partial = make_data_quality_report(
         sources_attempted=("a", "b", "c", "d"),
@@ -186,9 +167,6 @@ def test_brief_run_delivery_and_error_properties() -> None:
     assert run.total_recipients == 2
 
 
-# ============================================
-# Serialisation
-# ============================================
 def test_brief_run_json_round_trip_preserves_utc_and_tuples() -> None:
     run = make_brief_run()
     restored = BriefRun.model_validate_json(run.model_dump_json())

@@ -1,5 +1,3 @@
-"""HTTP request/response schemas."""
-
 from morning_brief.api.schemas.responses import (
     BriefRunResponse,
     DeliveryOutcome,

@@ -1,11 +1,3 @@
-"""Shared Pydantic base for all domain models.
-
-Every domain model in core.models inherits from FrozenModel. This guarantees:
-    - Immutability after construction (defends the audit trail)
-    - Strict type validation (no silent coercion of bad inputs)
-    - Forbid extra fields (typos in field names raise instead of silently passing)
-"""
-
 from __future__ import annotations
 
 from datetime import UTC, datetime
@@ -26,9 +18,6 @@ def _ensure_utc(value: datetime) -> datetime:
     return value.astimezone(UTC)
 
 
-# Use for every datetime field on a domain model: `field: UtcDatetime` (or
-# `UtcDatetime | None` for optional). Enforces tz-aware UTC on construction
-# and on deserialisation.
 UtcDatetime = Annotated[datetime, AfterValidator(_ensure_utc)]
 
 
@@ -41,9 +30,9 @@ class FrozenModel(BaseModel):
     """
 
     model_config = ConfigDict(
-        frozen=True,  # immutable after construction
-        strict=True,  # no silent type coercion
-        extra="forbid",  # unknown fields raise ValidationError
-        validate_default=True,  # validate Field defaults too
+        frozen=True,
+        strict=True,
+        extra="forbid",
+        validate_default=True,
         ser_json_timedelta="iso8601",
     )

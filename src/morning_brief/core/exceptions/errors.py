@@ -1,19 +1,10 @@
-"""
-Error hierarchy for the morning-brief pipeline.
-
-Every error in the system inherits from BriefSystemError. Logs and metrics filter
-by exception type, so the hierarchy must be precise and vague exceptions are a bug.
-"""
-
 from __future__ import annotations
 
 
-# Root
 class BriefSystemError(Exception):
     """Base for every error raised by the morning-brief pipeline."""
 
 
-# Data fetch
 class DataFetchError(BriefSystemError):
     """Errors during external market data fetching."""
 
@@ -34,7 +25,6 @@ class DataValidationError(DataFetchError):
     """A numerical value falls outside its plausible range."""
 
 
-# Analysis (LLM)
 class AnalysisError(BriefSystemError):
     """Errors during Claude analysis."""
 
@@ -51,7 +41,6 @@ class AnalysisTimeoutError(AnalysisError):
     """Claude response exceeded the timeout threshold."""
 
 
-# Guardrails
 class GuardrailError(BriefSystemError):
     """Errors raised by any guardrail in the safety layer."""
 
@@ -64,7 +53,6 @@ class OutputGuardrailFailedError(GuardrailError):
     """Analysis was rejected after Claude responded."""
 
 
-# Rendering
 class RenderError(BriefSystemError):
     """Errors during report rendering."""
 
@@ -73,7 +61,6 @@ class TemplateError(RenderError):
     """Jinja2 template failed to render."""
 
 
-# Delivery
 class DeliveryError(BriefSystemError):
     """Errors during report delivery."""
 
@@ -90,7 +77,6 @@ class RecipientError(DeliveryError):
     """Recipient is not in the configured whitelist."""
 
 
-# Storage / audit
 class StorageError(BriefSystemError):
     """Errors during audit-record persistence or retrieval."""
 
@@ -107,7 +93,6 @@ class CorruptRecordError(StorageError):
     """A stored audit record could not be parsed back into a BriefRun."""
 
 
-# Prompts
 class PromptError(BriefSystemError):
     """Errors in the prompt layer (registry, builder, validation)."""
 
@@ -120,7 +105,6 @@ class IncompletePromptError(PromptError):
     """An assembled prompt is missing a required component."""
 
 
-# Configuration
 class ConfigError(BriefSystemError):
     """Errors during configuration loading or validation."""
 

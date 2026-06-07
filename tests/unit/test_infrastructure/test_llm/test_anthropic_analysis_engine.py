@@ -1,10 +1,3 @@
-"""Tests for AnthropicAnalysisEngine with the Anthropic client mocked.
-
-No real API calls. We stub the AsyncAnthropic client to verify structured-output
-mapping, cost tracking, the single validation retry, model fallback, error mapping,
-and health checks.
-"""
-
 from __future__ import annotations
 
 from collections.abc import Iterator
@@ -70,9 +63,6 @@ def client() -> Iterator[MagicMock]:
     yield mock
 
 
-# ============================================
-# Success + cost
-# ============================================
 @pytest.mark.asyncio
 async def test_maps_structured_output_and_records_provenance(client: MagicMock) -> None:
     client.messages.parse.return_value = _parsed()
@@ -96,9 +86,6 @@ async def test_unknown_model_yields_no_cost(client: MagicMock) -> None:
     assert analysis.cost_usd is None
 
 
-# ============================================
-# Validation retry
-# ============================================
 @pytest.mark.asyncio
 async def test_validation_failure_retries_once_then_succeeds(client: MagicMock) -> None:
     client.messages.parse.side_effect = [_validation_error(), _parsed()]
@@ -120,9 +107,6 @@ async def test_validation_failure_twice_raises_invalid_response(client: MagicMoc
     assert client.messages.parse.await_count == 2
 
 
-# ============================================
-# Error mapping
-# ============================================
 @pytest.mark.asyncio
 async def test_timeout_maps_to_analysis_timeout(client: MagicMock) -> None:
     client.messages.parse.side_effect = anthropic.APITimeoutError(request=_REQUEST)
@@ -141,9 +125,6 @@ async def test_connection_error_without_fallback_raises_unavailable(client: Magi
         await engine.analyse(make_market_snapshot(), "prompt")
 
 
-# ============================================
-# Fallback
-# ============================================
 @pytest.mark.asyncio
 async def test_falls_back_to_secondary_model_when_primary_unavailable(client: MagicMock) -> None:
     client.messages.parse.side_effect = [
@@ -164,9 +145,6 @@ async def test_falls_back_to_secondary_model_when_primary_unavailable(client: Ma
     assert client.messages.parse.await_count == 2
 
 
-# ============================================
-# Health check
-# ============================================
 @pytest.mark.asyncio
 async def test_health_check_healthy_when_model_reachable(client: MagicMock) -> None:
     engine = AnthropicAnalysisEngine(model="claude-opus-4-8", client=client)

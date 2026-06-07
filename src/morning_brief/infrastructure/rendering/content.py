@@ -1,9 +1,3 @@
-"""Shared, channel-agnostic content snippets used across renderers.
-
-Reusable text assets (disclaimer, etc.) live here so every renderer — HTML email,
-Slack, PDF — uses the identical wording. One source of truth for compliance text.
-"""
-
 from __future__ import annotations
 
 from typing import Final

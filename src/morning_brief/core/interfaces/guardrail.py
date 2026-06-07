@@ -1,17 +1,3 @@
-"""Guardrail interfaces — the contracts for the three-tier safety system.
-
-Sections 13.1, 13.2, 13.3 of the architecture document define the three tiers:
-    - InputGuardrail   — runs after data fetch, before LLM call
-    - OutputGuardrail  — runs after LLM response, before rendering
-    - DeliveryGuardrail — runs after rendering, before delivery
-
-Each tier has its own interface because they operate on different data shapes.
-Trying to unify them into a generic Guardrail[T] interface adds ceremony
-without buying composability — implementations don't mix between tiers.
-
-Guardrails are synchronous: pure validation logic, no I/O.
-"""
-
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
@@ -23,9 +9,6 @@ from morning_brief.core.models.market_data import MarketSnapshot
 from morning_brief.core.models.report import RenderedReport
 
 
-# ============================================
-# Outcome types
-# ============================================
 class GuardrailSeverity(StrEnum):
     """Severity classification for a guardrail finding.
 
@@ -55,9 +38,6 @@ class GuardrailResult:
     context: dict[str, str] | None = None
 
 
-# ============================================
-# Tier 1 — Input guardrails (snapshot before LLM)
-# ============================================
 class InputGuardrail(ABC):
     """Validation applied to MarketSnapshot before it reaches the LLM.
 
@@ -75,9 +55,6 @@ class InputGuardrail(ABC):
         ...
 
 
-# ============================================
-# Tier 2 — Output guardrails (analysis after LLM)
-# ============================================
 class OutputGuardrail(ABC):
     """Validation applied to BriefAnalysis after the LLM responds.
 
@@ -102,9 +79,6 @@ class OutputGuardrail(ABC):
         ...
 
 
-# ============================================
-# Tier 3 — Delivery guardrails (report before send)
-# ============================================
 class DeliveryGuardrail(ABC):
     """Validation applied to RenderedReport before delivery is attempted.
 

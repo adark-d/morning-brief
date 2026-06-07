@@ -1,13 +1,3 @@
-"""Guardrail runner — executes a tier of guardrails and aggregates the verdict.
-
-Each tier (input, output, delivery) has a different validate() signature, so there
-is one run function per tier. All return a GuardrailReport carrying every result
-plus the aggregate severity. The orchestrator (Phase 6) decides what to do:
-    - CRITICAL  -> abort the pipeline, emit an alert, no delivery
-    - WARNING   -> continue, attach the warning to the run
-    - PASS      -> continue normally
-"""
-
 from __future__ import annotations
 
 from dataclasses import dataclass

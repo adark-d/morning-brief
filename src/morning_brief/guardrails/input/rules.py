@@ -1,9 +1,3 @@
-"""Input guardrails — validate a MarketSnapshot before it reaches the LLM.
-
-Protect the analysis from bad inputs: implausible yields, missing coverage, and
-stale data. Section 13.1 of the architecture document.
-"""
-
 from __future__ import annotations
 
 from collections.abc import Callable

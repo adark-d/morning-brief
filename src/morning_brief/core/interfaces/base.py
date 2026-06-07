@@ -1,9 +1,3 @@
-"""Shared types used across interfaces.
-
-These are protocol-agnostic helpers — health check results and similar.
-Concrete interfaces import from here when needed.
-"""
-
 from __future__ import annotations
 
 from dataclasses import dataclass

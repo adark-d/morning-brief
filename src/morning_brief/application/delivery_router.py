@@ -1,14 +1,3 @@
-"""ChannelRouter — fans a brief out to every enabled delivery channel.
-
-The router is the seam that makes the system multi-channel. For each target it:
-    1. asks the channel which ReportFormat it needs,
-    2. renders that format once (reusing the result across channels that share it),
-    3. delivers concurrently, isolating failures so one channel cannot sink another.
-
-It depends only on the DeliveryChannel and ReportRenderer interfaces — never on a
-concrete transport — so adding Slack, PDF, or a webhook is purely additive.
-"""
-
 from __future__ import annotations
 
 import asyncio

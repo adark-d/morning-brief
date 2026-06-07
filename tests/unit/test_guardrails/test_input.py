@@ -1,5 +1,3 @@
-"""Tests for the input guardrails."""
-
 from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
@@ -15,9 +13,6 @@ from morning_brief.guardrails.input import (
 )
 
 
-# ============================================
-# Yield range
-# ============================================
 def test_yield_range_passes_for_plausible_yields() -> None:
     result = YieldRangeGuardrail(0.1, 20.0).validate(make_market_snapshot())
     assert result.severity is GuardrailSeverity.PASS
@@ -31,9 +26,6 @@ def test_yield_range_aborts_on_out_of_range_yield() -> None:
     assert result.severity is GuardrailSeverity.CRITICAL
 
 
-# ============================================
-# Completeness
-# ============================================
 def test_completeness_passes_with_enough_maturities() -> None:
     yields = {
         "2Y": make_yield_point(maturity="2Y"),
@@ -54,9 +46,6 @@ def test_completeness_aborts_with_no_yields() -> None:
     assert result.severity is GuardrailSeverity.CRITICAL
 
 
-# ============================================
-# Staleness  (clock pinned via the injected `now` so age is deterministic)
-# ============================================
 _NOW = datetime(2026, 6, 6, 12, 0, tzinfo=UTC)
 
 

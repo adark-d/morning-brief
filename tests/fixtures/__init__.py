@@ -1,5 +1,3 @@
-"""Shared test fixtures and factory functions."""
-
 from tests.fixtures.factories import (
     make_brief_analysis,
     make_brief_run,

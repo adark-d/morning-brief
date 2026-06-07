@@ -1,12 +1,3 @@
-"""Audit trail models — the immutable record of every pipeline run.
-
-Section 10.3 of the architecture. This is what compliance retrieves when asked
-'what did the brief say on March 12th and who got it?'.
-
-Every BriefRun is written once and never modified. The AuditStore enforces this
-at the storage layer; the frozen models enforce it at the language layer.
-"""
-
 from __future__ import annotations
 
 import uuid
@@ -20,15 +11,8 @@ from morning_brief.core.models.base import FrozenModel, UtcDatetime
 from morning_brief.core.models.market_data import MarketSnapshot
 
 
-# ============================================
-# Enums
-# ============================================
 class RunStatus(StrEnum):
-    """Final status of a pipeline run.
-
-    StrEnum (Python 3.11+) means values are strings, which serialises
-    cleanly to JSON without custom encoders.
-    """
+    """Final status of a pipeline run."""
 
     SUCCESS = "success"
     PARTIAL = "partial"
@@ -39,9 +23,9 @@ class DeliveryStatus(StrEnum):
     """Status of a single delivery attempt to one recipient."""
 
     DELIVERED = "delivered"
-    REJECTED = "rejected"  # blocked by delivery guardrail
-    FAILED = "failed"  # SMTP/network error
-    SKIPPED = "skipped"  # e.g. duplicate-prevention block
+    REJECTED = "rejected"
+    FAILED = "failed"
+    SKIPPED = "skipped"
 
 
 class ErrorSeverity(StrEnum):
@@ -50,9 +34,6 @@ class ErrorSeverity(StrEnum):
     CRITICAL = "critical"
 
 
-# ============================================
-# Sub-records
-# ============================================
 class DeliveryResult(FrozenModel):
     """The outcome of attempting to deliver one report to one recipient."""
 
@@ -79,9 +60,6 @@ class BriefError(FrozenModel):
     context: dict[str, str] = Field(default_factory=dict)
 
 
-# ============================================
-# The complete run record
-# ============================================
 class BriefRun(FrozenModel):
     """Immutable audit record of a single pipeline execution.
 

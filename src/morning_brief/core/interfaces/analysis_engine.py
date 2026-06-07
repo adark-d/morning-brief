@@ -1,9 +1,3 @@
-"""AnalysisEngine interface — the contract for any LLM analysis backend.
-
-Today's implementation is Anthropic Claude. The architecture also names OpenAI
-and local models as fallbacks. Section 9.2 of the architecture document.
-"""
-
 from __future__ import annotations
 
 from abc import ABC, abstractmethod

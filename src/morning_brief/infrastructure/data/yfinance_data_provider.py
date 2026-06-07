@@ -1,16 +1,3 @@
-"""yfinance-backed DataProvider implementation.
-
-Fetches Treasury yields, instruments, and FX rates in parallel via asyncio.TaskGroup.
-Each source is fetched in isolation: a failure in one ticker is logged and recorded
-in the DataQualityReport, never raised, so the brief can still be generated from
-partial data and the input guardrails decide whether coverage is sufficient.
-
-Only raises APIUnavailableError when ALL sources fail simultaneously, i.e. when
-the resulting snapshot would be empty.
-
-Implements core.interfaces.data_provider.DataProvider.
-"""
-
 # yfinance ships no type stubs; contain strict-mode unknown-type noise at this
 # boundary (mypy is handled via [[tool.mypy.overrides]] in pyproject).
 # pyright: reportMissingTypeStubs=false, reportUnknownMemberType=false, reportUnknownVariableType=false, reportUnknownArgumentType=false
@@ -46,6 +33,7 @@ from morning_brief.infrastructure.data.yfinance_tickers import (
     INSTRUMENT_TICKERS,
     TREASURY_YIELD_TICKERS,
 )
+from morning_brief.observability.timing import log_duration
 
 logger = structlog.get_logger(__name__)
 
@@ -95,12 +83,12 @@ class YFinanceDataProvider(DataProvider):
             max_attempts=max_attempts,
         )
 
-    # ============================================
-    # Public interface
-    # ============================================
     async def fetch_snapshot(self) -> MarketSnapshot:
         snapshot_timestamp = datetime.now(UTC)
-        logger.info("snapshot_fetch_started", timestamp=snapshot_timestamp.isoformat())
+        start = time.perf_counter()
+        logger.info(
+            "snapshot_fetch_started", provider="yfinance", timestamp=snapshot_timestamp.isoformat()
+        )
 
         # Fetch the three categories in parallel. Each sub-fetcher isolates its
         # own per-source failures and never raises, so the TaskGroup only surfaces
@@ -143,6 +131,8 @@ class YFinanceDataProvider(DataProvider):
 
         logger.info(
             "snapshot_fetch_completed",
+            provider="yfinance",
+            duration_ms=round((time.perf_counter() - start) * 1000, 2),
             yields_count=len(yields),
             instruments_count=len(instruments),
             fx_count=len(fx),
@@ -175,9 +165,6 @@ class YFinanceDataProvider(DataProvider):
             latency_ms=elapsed_ms,
         )
 
-    # ============================================
-    # Internal sub-fetchers — one per category
-    # ============================================
     async def _fetch_yields(
         self,
         timestamp: datetime,
@@ -242,20 +229,22 @@ class YFinanceDataProvider(DataProvider):
 
         return fx, tuple(failures)
 
-    # ============================================
-    # Single-ticker fetch: timeout -> retry -> yfinance
-    # ============================================
     async def _fetch_ticker(self, ticker: str) -> float:
         """Fetch one ticker's latest close with a per-source timeout.
 
         The blocking yfinance call (and its retries) runs in a worker thread,
         bounded by ``timeout_seconds`` so a slow source cannot stall the snapshot.
-        Raises on failure; the calling sub-fetcher records and continues.
+        Raises on failure; the calling sub-fetcher records and continues. Per-ticker
+        latency is logged at DEBUG so a slow individual source can be pinpointed
+        without flooding INFO with one line per ticker.
         """
-        return await asyncio.wait_for(
-            asyncio.to_thread(self._fetch_close_with_retry, ticker),
-            timeout=self._timeout,
-        )
+        with log_duration(
+            logger, "ticker_fetched", level="debug", provider="yfinance", ticker=ticker
+        ):
+            return await asyncio.wait_for(
+                asyncio.to_thread(self._fetch_close_with_retry, ticker),
+                timeout=self._timeout,
+            )
 
     def _fetch_close_with_retry(self, ticker: str) -> float:
         """Run the blocking yfinance fetch, retrying only transient failures."""

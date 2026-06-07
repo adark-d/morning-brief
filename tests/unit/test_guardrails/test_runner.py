@@ -1,5 +1,3 @@
-"""Tests for the guardrail runner and report aggregation."""
-
 from __future__ import annotations
 
 from tests.fixtures import make_market_snapshot, make_yield_point

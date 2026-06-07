@@ -1,9 +1,3 @@
-"""Rendered report models — what the ReportRenderer produces.
-
-Section 9.3 of the architecture. The renderer takes a BriefAnalysis and
-produces a RenderedReport that the DeliveryChannel knows how to send.
-"""
-
 from __future__ import annotations
 
 from enum import StrEnum

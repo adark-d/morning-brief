@@ -1,16 +1,3 @@
-"""Settings loader — single entry point for fetching the application settings.
-
-Settings are loaded once and cached for the lifetime of the process. Loading
-failures (bad or missing values) are surfaced as the domain ConfigError hierarchy
-rather than Pydantic's ValidationError, so callers catch one meaningful type.
-
-Usage:
-    from morning_brief.config import get_settings
-
-    settings = get_settings()
-    settings.llm.model
-"""
-
 from __future__ import annotations
 
 from functools import cache

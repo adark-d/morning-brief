@@ -1,13 +1,3 @@
-"""Factory functions for constructing valid test data.
-
-Each factory returns a fully valid instance with sensible defaults.
-Tests pass keyword arguments to override only the fields they exercise.
-
-This is the standard pattern for keeping tests resilient to model evolution:
-when a new required field is added to a model, you update the factory once,
-not every test.
-"""
-
 from __future__ import annotations
 
 from datetime import UTC, datetime

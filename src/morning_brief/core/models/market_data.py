@@ -1,9 +1,3 @@
-"""Market data models — the raw picture of conditions at a point in time.
-
-This is what the DataProvider produces and what the input guardrails validate
-before anything reaches Claude. Section 10.1 of the architecture document.
-"""
-
 from __future__ import annotations
 
 from typing import Annotated
@@ -13,9 +7,6 @@ from pydantic import Field
 from morning_brief.core.models.base import FrozenModel, UtcDatetime
 
 
-# ============================================
-# Atomic price points
-# ============================================
 class YieldPoint(FrozenModel):
     """A single Treasury yield observation.
 
@@ -44,9 +35,6 @@ class FXPoint(FrozenModel):
     timestamp: UtcDatetime
 
 
-# ============================================
-# Data quality reporting
-# ============================================
 class DataQualityReport(FrozenModel):
     """Summary of what succeeded and what failed during a data fetch.
 
@@ -73,9 +61,6 @@ class DataQualityReport(FrozenModel):
         return set(self.sources_attempted) == set(self.sources_succeeded)
 
 
-# ============================================
-# The aggregated snapshot
-# ============================================
 class MarketSnapshot(FrozenModel):
     """The complete picture of market conditions at the moment of data fetch.
 
@@ -83,10 +68,6 @@ class MarketSnapshot(FrozenModel):
     to the guardrails and then to the prompt builder.
     """
 
-    # Section 10.1 specifies these as keyed maps, so they are dicts rather than
-    # tuples. frozen=True blocks rebinding the attribute but not in-place mutation
-    # of the dict; that window is acceptable because a snapshot is constructed once
-    # by the DataProvider and is immutable at rest once serialised into a BriefRun.
     timestamp: UtcDatetime
     yields: dict[str, YieldPoint] = Field(
         default_factory=dict,

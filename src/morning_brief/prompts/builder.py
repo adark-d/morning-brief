@@ -1,12 +1,3 @@
-"""PromptBuilder — assembles a complete prompt from versioned components.
-
-Pulls the system persona, output-schema description, few-shot examples, and the
-context template from the registry, renders the market snapshot into the context,
-and returns an AssembledPrompt carrying a composite version for the audit trail.
-
-Section 12.2 of the architecture document.
-"""
-
 from __future__ import annotations
 
 import structlog
@@ -52,9 +43,6 @@ class PromptBuilder:
         return assembled
 
 
-# ============================================
-# Assembly helpers
-# ============================================
 def _assemble_system(
     system: SystemPrompt,
     schema: OutputSchema,

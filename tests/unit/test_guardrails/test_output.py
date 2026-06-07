@@ -1,5 +1,3 @@
-"""Tests for the output guardrails."""
-
 from __future__ import annotations
 
 from tests.fixtures import make_brief_analysis, make_market_snapshot
@@ -17,9 +15,6 @@ def _narrative_of(word_count: int) -> str:
     return " ".join(["bond"] * word_count)
 
 
-# ============================================
-# Numerical grounding
-# ============================================
 def test_grounding_passes_when_figures_trace_to_snapshot() -> None:
     snapshot = make_market_snapshot()  # 10Y = 4.42
     analysis = make_brief_analysis()  # narrative cites 4.42
@@ -35,9 +30,6 @@ def test_grounding_warns_on_ungrounded_decimal() -> None:
     assert "9.99" in (result.context or {}).get("ungrounded", "")
 
 
-# ============================================
-# Confidence
-# ============================================
 def test_confidence_passes_above_threshold() -> None:
     analysis = make_brief_analysis(confidence=0.82)
     result = ConfidenceGuardrail(0.6).validate(analysis, make_market_snapshot())
@@ -50,9 +42,6 @@ def test_confidence_warns_below_threshold() -> None:
     assert result.severity is GuardrailSeverity.WARNING
 
 
-# ============================================
-# Narrative length
-# ============================================
 def test_narrative_length_passes_within_band() -> None:
     analysis = make_brief_analysis(full_narrative=_narrative_of(300))
     result = NarrativeLengthGuardrail(150, 500).validate(analysis, make_market_snapshot())

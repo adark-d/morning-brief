@@ -1,13 +1,3 @@
-"""Contract tests for AuditStore implementations.
-
-Both MockAuditStore and JsonAuditStore are exercised against the same tests
-via parametrization. This is the Liskov Substitution Principle made executable:
-if a test passes against the mock, the real implementation must behave the same.
-
-Tests deliberately do NOT depend on implementation details (where the file
-lives, what JSON layout looks like, etc.). They depend only on the contract.
-"""
-
 from __future__ import annotations
 
 import stat
@@ -28,9 +18,6 @@ from morning_brief.infrastructure.storage.json_audit_store import JsonAuditStore
 from morning_brief.infrastructure.storage.mock_audit_store import MockAuditStore
 
 
-# ============================================
-# Parametrize every test across both implementations
-# ============================================
 def _store_factories() -> list[tuple[str, Callable[[Path], AuditStore]]]:
     return [
         ("mock", lambda _tmp: MockAuditStore()),
@@ -46,9 +33,6 @@ def store(request: pytest.FixtureRequest, tmp_path: Path) -> AuditStore:
     return typed_factory(tmp_path)
 
 
-# ============================================
-# Contract tests
-# ============================================
 @pytest.mark.asyncio
 async def test_record_and_retrieve_by_id(store: AuditStore) -> None:
     run = make_brief_run()
@@ -184,7 +168,6 @@ async def test_get_latest_orders_by_triggered_at_not_write_order(store: AuditSto
 
 @pytest.mark.asyncio
 async def test_get_latest_uses_triggered_at_within_a_single_day(store: AuditStore) -> None:
-    """Within one calendar day, the run with the greatest triggered_at wins."""
     base = datetime(2026, 5, 10, 7, 0, tzinfo=UTC)
     first = make_brief_run(triggered_at=base)
     last = make_brief_run(triggered_at=base + timedelta(hours=3))

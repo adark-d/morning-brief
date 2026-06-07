@@ -1,11 +1,3 @@
-"""FastAPI application factory.
-
-``create_app`` is the explicit entry point: it builds (or accepts) the assembled
-``Application``, wires the dependency overrides, mounts the routers, and installs
-the error handlers that render the shared error envelope. Tests pass a mock
-application directly; the deployment entry point calls ``create_app(load_settings())``.
-"""
-
 from __future__ import annotations
 
 from importlib.metadata import version as distribution_version
@@ -18,21 +10,60 @@ from morning_brief.api.routes import briefs, health
 from morning_brief.application.composition import Application, build_application
 from morning_brief.config.settings import Settings
 
-# API identity and docs. The version is a build artifact owned by pyproject.toml,
-# read from the installed package metadata so it never drifts (a missing install is
-# a deployment fault and is allowed to fail loudly). The prose below is authored
-# here — the single place to edit the API's title, summary, description, and tags.
 _DISTRIBUTION = "morning-brief"
-_TITLE = "morning-brief"
-_SUMMARY = "Pre-market fixed-income briefing pipeline."
-_DESCRIPTION = (
-    "Triggers and retrieves morning-brief pipeline runs. Every run produces an "
-    "immutable audit record; failed runs are reported as data (status=failed), not "
-    "as HTTP errors. All `/briefs` endpoints require a bearer token."
-)
+_TITLE = "Morning Brief API"
+_SUMMARY = "Trigger and retrieve pre-market fixed-income briefing runs."
+_DESCRIPTION = """\
+The **Morning Brief API** drives the morning-brief pipeline — an automated workflow
+that fetches pre-market market data, generates a fixed-income desk briefing with an
+LLM, validates it through three tiers of guardrails, delivers it to recipients, and
+records an immutable audit trail of every run.
+
+Use this API to **trigger** a run on demand and to **retrieve** the audit records of
+past runs.
+
+## Authentication
+
+Every `/briefs` endpoint requires a **bearer token**, sent as
+`Authorization: Bearer <token>`. On this page, click **Authorize** and paste the token
+to try the protected endpoints. The `/health` endpoint is open.
+
+Authentication is **fail-closed**: if the server is started without a configured token,
+every protected route returns `503 Service Unavailable` rather than serving an
+unauthenticated API.
+
+## Conventions
+
+- **Runs are data, not transactions.** A run whose pipeline fails is still a successful
+  API call — it returns `200 OK` with `status: "failed"`. HTTP error codes are reserved
+  for problems with the *request* itself (authentication, validation, not-found).
+- **Every run is audited.** Each run produces an immutable record, retrievable later by
+  id or by date.
+- **Responses are PII-free.** Audit views expose the delivery channel and status but
+  never recipient addresses.
+- **Dates are UTC.** All timestamps and date filters use the UTC calendar.
+
+## Error format
+
+Every error response shares one envelope: a stable, machine-readable `code` and a
+human-readable `detail`.
+
+```json
+{ "code": "not_found", "detail": "run 'a1b2c3' not found" }
+```
+"""
 _OPENAPI_TAGS = [
-    {"name": "briefs", "description": "Trigger pipeline runs and retrieve audit records."},
-    {"name": "health", "description": "Unauthenticated liveness probe."},
+    {
+        "name": "Briefs",
+        "description": (
+            "Trigger pipeline runs and retrieve their immutable audit records. "
+            "All endpoints in this group require a bearer token."
+        ),
+    },
+    {
+        "name": "Health",
+        "description": "Unauthenticated liveness probe for load balancers and uptime monitors.",
+    },
 ]
 
 

@@ -1,10 +1,3 @@
-"""Tests for ChannelRouter — the multi-channel fan-out and format negotiation.
-
-These prove the system delivers one brief to several channels at once, renders the
-right format for each, reuses a render across channels that share a format, and
-isolates a failing channel from the rest.
-"""
-
 from __future__ import annotations
 
 import pytest

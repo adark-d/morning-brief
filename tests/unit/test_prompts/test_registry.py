@@ -1,5 +1,3 @@
-"""Tests for PromptRegistry loading the bundled templates."""
-
 from __future__ import annotations
 
 import pytest

@@ -1,9 +1,3 @@
-"""Brief analysis — the structured output from Claude.
-
-Section 10.2 of the architecture. Every field is defined in the output schema
-YAML (Phase 4) and validated by the output guardrail (Section 13.2) before use.
-"""
-
 from __future__ import annotations
 
 from typing import Annotated
@@ -14,11 +8,7 @@ from morning_brief.core.models.base import FrozenModel, UtcDatetime
 
 
 class BriefAnalysis(FrozenModel):
-    """Claude's structured output for a single morning brief.
-
-    The shape here matches the output schema in
-    prompts/templates/output_schemas/brief_schema_v1.yaml.
-    """
+    """The LLM's structured output, mirroring prompts/templates/output_schemas/brief_schema_v1.yaml."""
 
     headline: Annotated[
         str,

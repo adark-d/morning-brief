@@ -1,14 +1,3 @@
-"""PromptValidator — completeness and token-budget checks before calling the LLM.
-
-Catches two failure modes before they reach Claude: a prompt missing a required
-component, and a prompt that would blow the token budget.
-
-Token counting here is a deliberately rough heuristic (~4 chars per token) so the
-check runs offline with no API call. For a precise count, the Anthropic
-``messages.count_tokens`` endpoint is the production option — tiktoken must NOT be
-used, as it is calibrated for a different tokenizer and undercounts Claude tokens.
-"""
-
 from __future__ import annotations
 
 import structlog
@@ -39,7 +28,6 @@ class PromptValidator:
         return len(prompt.full_prompt) // _CHARS_PER_TOKEN
 
     def within_budget(self, prompt: AssembledPrompt) -> bool:
-        """True if the estimated token count is within the configured budget."""
         estimate = self.estimate_tokens(prompt)
         if estimate > self._max_tokens:
             logger.warning(

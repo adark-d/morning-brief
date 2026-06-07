@@ -1,12 +1,3 @@
-"""HTTP response DTOs.
-
-These are the API's deliberate output contract, kept distinct from the domain
-models so the wire format is controlled and the internal model can evolve without
-leaking new fields. In particular the audit view never carries recipient addresses
-(PII) or free-text error detail — those stay in the stored record for privileged,
-forensic access only.
-"""
-
 from __future__ import annotations
 
 from datetime import datetime
@@ -21,12 +12,26 @@ from morning_brief.core.models.audit import BriefRun, DeliveryStatus, ErrorSever
 class RunResponse(BaseModel):
     """Compact summary of one pipeline run (list and trigger endpoints)."""
 
-    run_id: str = Field(description="The run's UUID; use it to fetch the full record")
-    status: RunStatus = Field(description="Final outcome: success, partial, or failed")
-    delivered: int = Field(description="Recipients the brief was delivered to")
-    recipients: int = Field(description="Recipients delivery was attempted for")
-    error_count: int = Field(description="Number of errors and warnings recorded on the run")
-    duration_seconds: float | None = Field(description="Wall-clock duration of the run")
+    run_id: str = Field(
+        description="The run's unique identifier (UUID); use it to fetch the full record.",
+        examples=["a1b2c3d4-0000-4000-8000-000000000000"],
+    )
+    status: RunStatus = Field(
+        description="Final outcome of the run: `success`, `partial`, or `failed`.",
+        examples=["success"],
+    )
+    delivered: int = Field(
+        description="Number of recipients the brief was successfully delivered to.", examples=[3]
+    )
+    recipients: int = Field(
+        description="Number of recipients delivery was attempted for.", examples=[3]
+    )
+    error_count: int = Field(
+        description="Number of errors and warnings recorded on the run.", examples=[0]
+    )
+    duration_seconds: float | None = Field(
+        description="Wall-clock duration of the run, in seconds.", examples=[2.41]
+    )
 
     @classmethod
     def from_run(cls, run: BriefRun) -> Self:
@@ -43,8 +48,10 @@ class RunResponse(BaseModel):
 class DeliveryOutcome(BaseModel):
     """One delivery attempt — channel and status only; the recipient is not exposed."""
 
-    channel: str = Field(description="Channel the brief was sent through, e.g. 'email'")
-    status: DeliveryStatus = Field(description="Delivery outcome for this attempt")
+    channel: str = Field(description="Channel the brief was sent through.", examples=["email"])
+    status: DeliveryStatus = Field(
+        description="Delivery outcome for this attempt.", examples=["delivered"]
+    )
 
 
 class RunErrorView(BaseModel):

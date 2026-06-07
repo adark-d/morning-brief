@@ -1,32 +1,30 @@
-"""Health endpoint — unauthenticated liveness check.
-
-Deep readiness (pinging the data, LLM, delivery, and storage dependencies via
-their health_check contracts) is deferred to the deployment-hardening phase; this
-is a plain liveness probe for load balancers and uptime checks.
-"""
-
 from __future__ import annotations
 
 from fastapi import APIRouter
 from pydantic import BaseModel, Field
 
-router = APIRouter(tags=["health"])
+router = APIRouter(tags=["Health"])
 
 
 class HealthResponse(BaseModel):
-    status: str = Field(description="Liveness indicator; 'ok' when the process is serving")
+    status: str = Field(
+        description='Liveness indicator. `"ok"` when the process is up and serving requests.',
+        examples=["ok"],
+    )
 
 
 @router.get(
     "/health",
     response_model=HealthResponse,
     summary="Liveness probe",
-    response_description="The service is up and serving requests",
+    response_description="The service is up and serving requests.",
 )
 async def health() -> HealthResponse:
-    """Unauthenticated liveness check for load balancers and uptime monitors.
+    """Report whether the process is alive and serving. No authentication required.
 
-    Deep readiness (pinging the data, LLM, delivery, and storage dependencies via
-    their health-check contracts) is deferred to the deployment-hardening phase.
+    This is a shallow **liveness** check intended for load balancers and uptime
+    monitors — it returns `ok` as long as the process can serve a request. It does not
+    verify downstream dependencies (data, LLM, delivery, storage); deep **readiness**
+    probing of those is deferred to the deployment-hardening phase.
     """
     return HealthResponse(status="ok")

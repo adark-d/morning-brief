@@ -16,8 +16,10 @@ delivery:
   # e.g. MORNING_BRIEF_DELIVERY__EMAIL__SMTP_HOST
 
 audit:
-  backend: postgres
-  # postgres_dsn injected via env var: MORNING_BRIEF_AUDIT__POSTGRES_DSN
+  backend: json
+  # json_store_path should point at a persistent volume in deployment, e.g.
+  # MORNING_BRIEF_AUDIT__JSON_STORE_PATH=/var/lib/morning-brief/audit
+  json_store_path: ./audit/prod
 
 observability:
   log_level: INFO

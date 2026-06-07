@@ -1,11 +1,3 @@
-"""Deterministic in-memory AnalysisEngine for testing.
-
-Returns a fixed, valid BriefAnalysis without calling Claude. Constructor flags
-simulate the failure modes the pipeline must degrade against.
-
-Implements core.interfaces.analysis_engine.AnalysisEngine.
-"""
-
 from __future__ import annotations
 
 from datetime import UTC, datetime

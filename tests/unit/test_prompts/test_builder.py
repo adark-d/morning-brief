@@ -1,5 +1,3 @@
-"""Tests for PromptBuilder assembling a complete prompt from components."""
-
 from __future__ import annotations
 
 import pytest

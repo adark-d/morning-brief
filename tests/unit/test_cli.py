@@ -1,11 +1,3 @@
-"""Tests for the CLI entry point.
-
-`run_once` is exercised against a fully-mock configuration (it runs a real pipeline
-with mock edges and returns a process exit code). The parser is checked directly;
-`main`/`serve` are not run end-to-end here (they load real config and block on the
-server, respectively).
-"""
-
 from __future__ import annotations
 
 import pytest

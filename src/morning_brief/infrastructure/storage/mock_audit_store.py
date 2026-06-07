@@ -1,15 +1,3 @@
-"""In-memory mock implementation of AuditStore for testing.
-
-Same contract as the real implementation, but stores records in a dict.
-Used by unit tests that need an AuditStore but shouldn't touch the filesystem.
-
-The mock is *not* a stub. It implements the full interface and enforces
-the same immutability semantics. If a test passes against the mock, the
-real implementation should behave the same way.
-
-Implements core.interfaces.audit_store.AuditStore.
-"""
-
 from __future__ import annotations
 
 from datetime import date
@@ -59,14 +47,10 @@ class MockAuditStore(AuditStore):
             latency_ms=0.0,
         )
 
-    # ============================================
-    # Test helpers (not on the interface)
-    # ============================================
     def clear(self) -> None:
         """Reset the store. Useful for test isolation."""
         self._runs.clear()
 
     @property
     def run_count(self) -> int:
-        """Total runs currently stored."""
         return len(self._runs)

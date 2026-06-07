@@ -1,5 +1,3 @@
-"""Tests for the delivery guardrails."""
-
 from __future__ import annotations
 
 from datetime import UTC, datetime
@@ -24,9 +22,6 @@ def _report(*, contains_disclaimer: bool = True) -> RenderedReport:
     )
 
 
-# ============================================
-# Recipient whitelist
-# ============================================
 def test_whitelist_passes_for_known_recipients() -> None:
     guardrail = RecipientWhitelistGuardrail({"desk@firm.com"})
     result = guardrail.validate(_report(), ("desk@firm.com",))
@@ -46,9 +41,6 @@ def test_whitelist_aborts_for_unknown_recipient() -> None:
     assert "leak@external.com" in (result.context or {}).get("unknown", "")
 
 
-# ============================================
-# Report completeness
-# ============================================
 def test_report_completeness_passes_for_full_report() -> None:
     result = ReportCompletenessGuardrail().validate(_report(), ("desk@firm.com",))
     assert result.severity is GuardrailSeverity.PASS
@@ -69,9 +61,6 @@ def test_report_completeness_aborts_on_empty_body() -> None:
     assert result.severity is GuardrailSeverity.CRITICAL
 
 
-# ============================================
-# Disclaimer
-# ============================================
 def test_disclaimer_passes_when_present() -> None:
     result = DisclaimerGuardrail().validate(_report(contains_disclaimer=True), ("desk@firm.com",))
     assert result.severity is GuardrailSeverity.PASS

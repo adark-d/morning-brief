@@ -1,10 +1,3 @@
-"""Tests for the BriefOrchestrator pipeline flow.
-
-Network edges (data, LLM, delivery, audit) are mocked; the prompt layer and
-guardrails are real, since the orchestrator legitimately depends on them. A fixed
-clock makes timing deterministic.
-"""
-
 from __future__ import annotations
 
 from datetime import UTC, datetime
@@ -126,9 +119,6 @@ def _make(
     return orchestrator, audit_store
 
 
-# ============================================
-# Happy path
-# ============================================
 @pytest.mark.asyncio
 async def test_run_succeeds_and_records_audit() -> None:
     orchestrator, audit_store = _make()
@@ -152,9 +142,6 @@ async def test_run_records_audit_even_on_failure() -> None:
     assert audit_store.run_count == 1
 
 
-# ============================================
-# Pre-flight + fetch
-# ============================================
 @pytest.mark.asyncio
 async def test_unhealthy_provider_aborts_before_analysis() -> None:
     orchestrator, _ = _make(data_provider=MockDataProvider(unhealthy=True))
@@ -175,9 +162,6 @@ async def test_total_data_outage_aborts_with_recorded_error() -> None:
     assert any(e.component == "data_provider" for e in run.errors)
 
 
-# ============================================
-# Input guardrails
-# ============================================
 @pytest.mark.asyncio
 async def test_input_critical_aborts_before_llm() -> None:
     # No yields -> CompletenessGuardrail returns CRITICAL.
@@ -203,9 +187,6 @@ async def test_input_warning_is_recorded_but_pipeline_continues() -> None:
     assert any(e.component == "guardrail.input" and e.severity == "warning" for e in run.errors)
 
 
-# ============================================
-# Analysis
-# ============================================
 @pytest.mark.asyncio
 async def test_analysis_failure_aborts() -> None:
     orchestrator, _ = _make(analysis_engine=MockAnalysisEngine(fail_unavailable=True))
@@ -216,9 +197,6 @@ async def test_analysis_failure_aborts() -> None:
     assert any(e.component == "analysis_engine" for e in run.errors)
 
 
-# ============================================
-# Output guardrails
-# ============================================
 @pytest.mark.asyncio
 async def test_output_critical_aborts_and_skips_delivery() -> None:
     channel = MockDeliveryChannel()
@@ -234,9 +212,6 @@ async def test_output_critical_aborts_and_skips_delivery() -> None:
     assert channel.delivered == []
 
 
-# ============================================
-# Delivery
-# ============================================
 @pytest.mark.asyncio
 async def test_delivery_guardrail_critical_rejects_all_recipients() -> None:
     channel = MockDeliveryChannel()
@@ -291,9 +266,6 @@ async def test_render_failure_aborts() -> None:
     assert any(e.component == "renderer" for e in run.errors)
 
 
-# ============================================
-# Graceful degradation
-# ============================================
 @pytest.mark.asyncio
 async def test_degraded_provider_warns_but_completes() -> None:
     orchestrator, _ = _make(data_provider=_DegradedProvider())

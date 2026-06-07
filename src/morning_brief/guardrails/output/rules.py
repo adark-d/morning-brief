@@ -1,16 +1,3 @@
-"""Output guardrails — validate a BriefAnalysis before it reaches the renderer.
-
-Protect recipients from bad model output: fabricated numbers and low-confidence
-analyses. Section 13.2 of the architecture document.
-
-Note on scope: rigorous correctness/quality evaluation (LLM-as-judge, factual
-accuracy across prompt versions) is the domain of the dedicated evaluation work,
-not this guardrail layer. The grounding check here is a fast, conservative
-heuristic that flags numbers in the prose with no obvious source in the snapshot —
-it raises a WARNING for review rather than a hard abort, to avoid blocking a good
-brief on a benign rounding.
-"""
-
 from __future__ import annotations
 
 import re

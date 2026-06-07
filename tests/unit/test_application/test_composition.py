@@ -1,11 +1,3 @@
-"""Tests for the composition root.
-
-Two concerns: (1) a fully-mock pipeline assembled from settings runs end-to-end
-(only the network edges are mock — the prompt layer, guardrails, and HTML renderer
-are real); (2) unknown or incomplete config fails fast with the ConfigError
-hierarchy rather than at run time.
-"""
-
 from __future__ import annotations
 
 from pathlib import Path
@@ -46,9 +38,6 @@ def _mock_settings(
     )
 
 
-# ============================================
-# End-to-end through the real composition root
-# ============================================
 @pytest.mark.asyncio
 async def test_mock_pipeline_runs_end_to_end() -> None:
     orchestrator = build_orchestrator(_mock_settings())
@@ -81,9 +70,6 @@ def test_production_implementations_wire_without_error(tmp_path: Path) -> None:
     assert build_orchestrator(settings) is not None
 
 
-# ============================================
-# Fail-fast config selection
-# ============================================
 def test_unknown_data_provider_raises() -> None:
     with pytest.raises(InvalidConfigError, match="data provider"):
         build_orchestrator(_mock_settings(data=DataProviderSettings(name="bogus")))

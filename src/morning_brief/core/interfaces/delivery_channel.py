@@ -1,9 +1,3 @@
-"""DeliveryChannel interface — the contract for any report-delivery transport.
-
-Today: email via SMTP. Tomorrow: Slack, API webhooks, S3 archives.
-Section 9.4 of the architecture document.
-"""
-
 from __future__ import annotations
 
 from abc import ABC, abstractmethod

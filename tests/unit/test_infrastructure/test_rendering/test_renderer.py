@@ -1,10 +1,3 @@
-"""Tests for ReportRenderer implementations.
-
-The contract tests run against both HtmlEmailRenderer and MockRenderer to prove
-substitutability. HTML-specific behaviour (autoescaping, section structure) is
-tested separately against the real renderer.
-"""
-
 from __future__ import annotations
 
 from collections.abc import Callable
@@ -22,9 +15,6 @@ from morning_brief.infrastructure.rendering.mock_renderer import MockRenderer
 _RENDERERS: list[Callable[[], ReportRenderer]] = [HtmlEmailRenderer, MockRenderer]
 
 
-# ============================================
-# Contract — both implementations
-# ============================================
 @pytest.fixture(params=_RENDERERS, ids=lambda f: f.__name__)
 def renderer(request: pytest.FixtureRequest) -> ReportRenderer:
     factory: Callable[[], ReportRenderer] = request.param
@@ -52,9 +42,6 @@ def test_supported_formats_includes_html_and_plain_text(renderer: ReportRenderer
     assert ReportFormat.PLAIN_TEXT in formats
 
 
-# ============================================
-# HtmlEmailRenderer specifics
-# ============================================
 def test_html_renderer_includes_all_sections() -> None:
     analysis = make_brief_analysis(
         key_signals=("Curve flattening", "Risk-off equities"),
@@ -88,9 +75,6 @@ def test_html_renderer_subject_carries_the_brief_date() -> None:
     assert report.subject.startswith("Morning Brief —")
 
 
-# ============================================
-# MockRenderer specifics
-# ============================================
 def test_mock_renderer_can_simulate_failure() -> None:
     with pytest.raises(TemplateError):
         MockRenderer(fail=True).render(make_brief_analysis())

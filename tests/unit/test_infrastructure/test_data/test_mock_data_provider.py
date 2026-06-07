@@ -1,9 +1,3 @@
-"""Tests for MockDataProvider — the in-memory test fixture.
-
-These verify the mock itself behaves correctly. The mock is used by other
-tests, so its own correctness is the foundation of everything else.
-"""
-
 from __future__ import annotations
 
 import pytest
@@ -70,7 +64,6 @@ async def test_mock_health_check_unhealthy_when_flagged() -> None:
 
 @pytest.mark.asyncio
 async def test_mock_uses_consistent_timestamp_across_data() -> None:
-    """All data points in a snapshot share the snapshot's fetch time."""
     provider = MockDataProvider()
     snapshot = await provider.fetch_snapshot()
 
@@ -85,7 +78,6 @@ async def test_mock_uses_consistent_timestamp_across_data() -> None:
 
 @pytest.mark.asyncio
 async def test_mock_yields_contain_typical_treasury_maturities() -> None:
-    """The default mock should include the maturities the pipeline expects."""
     provider = MockDataProvider()
     snapshot = await provider.fetch_snapshot()
     # The architecture's analysis layer assumes at least these are present

@@ -1,12 +1,3 @@
-"""SMTP email DeliveryChannel using aiosmtplib.
-
-Delivers to each recipient independently with a per-recipient timeout, so one
-slow or rejected address cannot block or fail the others. Each attempt produces
-its own DeliveryResult; the batch never aborts on a single failure.
-
-Implements core.interfaces.delivery_channel.DeliveryChannel.
-"""
-
 from __future__ import annotations
 
 import asyncio
@@ -89,9 +80,6 @@ class EmailDeliveryChannel(DeliveryChannel):
             latency_ms=elapsed_ms,
         )
 
-    # ============================================
-    # Internal
-    # ============================================
     async def _deliver_one(self, report: RenderedReport, recipient: str) -> DeliveryResult:
         attempted_at = datetime.now(UTC)
         try:

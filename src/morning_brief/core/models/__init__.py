@@ -1,10 +1,3 @@
-"""Public API for the domain models.
-
-Import models from this package, not from the specific modules:
-
-    from morning_brief.core.models import MarketSnapshot, BriefAnalysis, BriefRun
-"""
-
 from morning_brief.core.models.analysis import BriefAnalysis
 from morning_brief.core.models.audit import (
     BriefError,
