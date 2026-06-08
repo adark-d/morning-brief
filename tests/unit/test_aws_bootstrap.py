@@ -31,6 +31,16 @@ def test_bootstrap_is_noop_outside_lambda() -> None:
 
 
 @pytest.mark.usefixtures("restore_environ")
+def test_bootstrap_is_noop_in_lambda_without_a_region() -> None:
+    # The local Runtime Interface Emulator sets the function name but no region;
+    # bootstrap must skip SSM so an offline container runs the pipeline on mocks.
+    os.environ["AWS_LAMBDA_FUNCTION_NAME"] = "morning-brief-batch"
+    os.environ.pop("AWS_REGION", None)
+    os.environ.pop("AWS_DEFAULT_REGION", None)
+    bootstrap_secrets()
+
+
+@pytest.mark.usefixtures("restore_environ")
 def test_bootstrap_loads_ssm_params_as_env_vars() -> None:
     os.environ["AWS_LAMBDA_FUNCTION_NAME"] = "morning-brief-batch"
     os.environ["MORNING_BRIEF_ENVIRONMENT"] = "test"
