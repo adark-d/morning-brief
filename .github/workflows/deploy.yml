@@ -33,6 +33,11 @@ permissions:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    # Skip until the infrastructure exists. AWS_DEPLOY_ROLE_ARN is a Terraform output,
+    # set as a repo variable after the first `terraform apply`. Until then there is
+    # nothing to deploy to, so the job is a clean no-op rather than failing on missing
+    # credentials. It activates automatically once the variable is set.
+    if: ${{ vars.AWS_DEPLOY_ROLE_ARN != '' }}
     steps:
       - uses: actions/checkout@v4
 
