@@ -1,0 +1,49 @@
+# Build context is intentionally narrow: the Dockerfile needs only pyproject.toml,
+# uv.lock, README.md, src/, and config/. Everything else is excluded to keep the
+# context small and to guarantee no secrets or local artefacts reach the image.
+
+# Version control and CI
+.git
+.gitignore
+.github
+
+# Virtual environments and caches
+.venv
+__pycache__/
+*.py[cod]
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+
+# Tests are not shipped in the runtime image
+tests/
+
+# Secrets and local environment (never in an image)
+.env
+.env.*
+*.key
+*.pem
+
+# Runtime artefacts
+audit/
+*.audit.json
+.coverage
+htmlcov/
+coverage.xml
+
+# Docs and local notes not needed to build (the architecture doc and handover
+# notes carry firm/stakeholder names and must never enter the image)
+docs/
+*.docx
+HANDOVER.md
+SECURITY.md
+CLAUDE.md
+
+# Container build files themselves
+Dockerfile
+.dockerignore
+
+# Editor / OS / tooling noise
+.claude/
+.DS_Store
+.python-version
