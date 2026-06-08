@@ -40,7 +40,7 @@ Constraints carried in from the codebase:
 |---|---|
 | Compute | **One container image (ECR)** run on **AWS Lambda** — batch + API |
 | Batch trigger | **EventBridge Scheduler** → batch Lambda (`cron`, Europe/London) |
-| API | **API Gateway HTTP API** → API Lambda (same image, Lambda Web Adapter) |
+| API | **API Gateway HTTP API** → API Lambda (same image, Mangum ASGI adapter) |
 | Audit store | **S3** with **Object Lock (WORM)** + SSE-KMS + versioning + lifecycle |
 | Email | **SES** for production (native, IAM-role based); **Resend SMTP** as the zero-code on-ramp |
 | Secrets | **Secrets Manager** (or SSM Parameter Store SecureString) + **KMS** |
@@ -59,7 +59,7 @@ Estimated cost: **~$3–5/month + LLM usage** (≈$1/month of Anthropic calls).
    (retry policy + DLQ)                            + WAF + ACM TLS + custom domain
                  │                                              │
                  ▼                                              ▼
-      Lambda: morning-brief run                     Lambda: FastAPI (Web Adapter)
+      Lambda: morning-brief run                     Lambda: FastAPI via Mangum
                  └────────────  ONE container image from ECR  ────────────┘
                  │              │                │                    │
                  ▼              ▼                ▼                    ▼
@@ -89,9 +89,14 @@ operate.
   dominates latency anyway.
 - **Two entrypoints from one image:**
   - *Batch Lambda* — handler invokes the orchestrator (equivalent of `morning-brief run`).
-  - *API Lambda* — runs the FastAPI app via the **AWS Lambda Web Adapter** (the app
-    serves normally; the adapter bridges API Gateway ↔ ASGI). The image's `CMD` is
-    overridden per function.
+  - *API Lambda* — wraps the FastAPI app with **Mangum**, an ASGI-to-Lambda adapter
+    that translates API Gateway events into ASGI calls in-process. The image's `CMD`
+    is overridden per function (`run_handler` vs `api_handler`).
+  - *Why Mangum over the Lambda Web Adapter:* Mangum is a pure-Python dependency with
+    no extra layer or sidecar process — no uvicorn, no port, no exec wrapper — so the
+    image stays a single artifact distinguished only by its `CMD`. The Web Adapter
+    (which runs the real HTTP server as a Lambda extension) earns its keep when an app
+    must also serve unchanged outside Lambda; that is not a requirement here.
 
 ### 4.2 Audit store — S3 with Object Lock (not Postgres)
 
@@ -240,9 +245,10 @@ workload — the cost of choosing the wrong compute and storage shapes.
 
 These land in the repo *before* the Terraform, each behind the existing gate:
 
-1. **`Dockerfile`** — multi-stage, `uv`, `python:3.13-slim` (or AWS Lambda base
-   image); installs deps, copies `src/` and `config/`, sets the entrypoint. Compatible
-   with the Lambda Web Adapter for the API function.
+1. **`Dockerfile`** — multi-stage on the **AWS Lambda Python base image**; `uv` installs
+   the locked dependencies and the project (so its package metadata is present, which
+   the API reads via `importlib.metadata`), and `config/` is copied in. One image, with
+   `CMD` overridden per function; the API uses **Mangum**, so no Web Adapter layer is needed.
 2. **`S3AuditStore`** (`infrastructure/storage/s3_audit_store.py`) — implements the
    `AuditStore` interface against S3 (§4.2), plus an `s3` branch in
    `_build_audit_store` and the relevant `AuditSettings` fields (bucket, region,
@@ -250,8 +256,8 @@ These land in the repo *before* the Terraform, each behind the existing gate:
 3. **`SesDeliveryChannel`** (`infrastructure/delivery/ses_delivery_channel.py`) —
    implements `DeliveryChannel` via `boto3` `ses:SendEmail`, plus a `ses` branch in
    `_build_channel`. (Skip if starting on Resend-SMTP, which needs no code.)
-4. **Lambda handlers** — a thin `handler.py`: one entry that runs the orchestrator
-   (batch), and the Web Adapter wiring for the API.
+4. **Lambda handlers** — a thin handler module: `run_handler` runs the orchestrator
+   (batch), and `api_handler` serves the FastAPI app through Mangum (API).
 5. **CI extension** — build → push to ECR → deploy, gated on the existing checks.
 
 All of these are additive and use existing extension points (interfaces +
