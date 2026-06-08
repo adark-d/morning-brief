@@ -1,0 +1,12 @@
+# Terraform working dirs and state — never commit
+.terraform/
+*.tfstate
+*.tfstate.*
+crash.log
+
+# Local variable + backend values (may carry account-specific or sensitive config)
+*.tfvars
+backend.hcl
+!*.tfvars.example
+
+# Keep the provider lock file (.terraform.lock.hcl) committed for reproducible installs.

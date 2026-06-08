@@ -12,14 +12,19 @@ llm:
 delivery:
   channels: [email]
   duplicate_prevention_enabled: true
-  # email.smtp_host, email.smtp_port, email.smtp_from injected via env vars,
-  # e.g. MORNING_BRIEF_DELIVERY__EMAIL__SMTP_HOST
+  email:
+    # Launch on Resend over SMTP (non-secret transport config). The sender
+    # (smtp_from) is injected per the verified domain; the username/password are
+    # SSM SecureString secrets (username "resend", password = Resend API key).
+    smtp_host: smtp.resend.com
+    smtp_port: 587
+    start_tls: true
 
 audit:
-  backend: json
-  # json_store_path should point at a persistent volume in deployment, e.g.
-  # MORNING_BRIEF_AUDIT__JSON_STORE_PATH=/var/lib/morning-brief/audit
-  json_store_path: ./audit/prod
+  # Immutable S3 audit store (Object Lock WORM). The bucket/region/KMS key are
+  # injected as env vars by Terraform (MORNING_BRIEF_AUDIT__S3_BUCKET etc.);
+  # backend: s3 with an unset bucket fails loud by design.
+  backend: s3
 
 observability:
   log_level: INFO

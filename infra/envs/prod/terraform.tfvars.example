@@ -1,0 +1,22 @@
+# Copy to terraform.tfvars and fill in. Non-secret values only — real secret VALUES are
+# set out-of-band via `aws ssm put-parameter` (see infra/README.md), never here.
+
+# Globally-unique audit bucket name (Object Lock, 7-year COMPLIANCE retention — irreversible).
+audit_bucket_name = "morning-brief-audit-CHANGEME"
+
+# Image tag to deploy — pin to a build SHA or digest (ECR tags are immutable).
+image_tag = "CHANGEME"
+
+# Verified sender for Resend SMTP (non-secret).
+smtp_from = "briefs@example.com"
+
+# Alerting.
+alert_email      = "ops@example.com"
+slack_channel_id = "" # e.g. "C0123456789"; empty disables Slack
+slack_team_id    = "" # e.g. "T0123456789"; from the one-time Chatbot authorization
+
+# GitHub OIDC deploy role trust.
+github_owner = "adark-d"
+github_repo  = "morning-brief"
+# create_oidc_provider = false   # set if the account already has the GitHub OIDC provider
+# existing_oidc_provider_arn = "arn:aws:iam::ACCOUNT:oidc-provider/token.actions.githubusercontent.com"

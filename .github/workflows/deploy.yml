@@ -1,0 +1,66 @@
+name: Deploy (batch Lambda)
+
+# Builds the container image, pushes it to ECR, and rolls the batch Lambda to it.
+# Authenticates to AWS with GitHub OIDC (no stored keys) using the deploy role created
+# by infra/modules/cicd. The first deploy is manual (see infra/README.md); thereafter
+# this runs on a push to main or on demand.
+#
+# Required repository variables (Settings -> Variables -> Actions):
+#   AWS_REGION           e.g. eu-west-2
+#   AWS_DEPLOY_ROLE_ARN  output github_deploy_role_arn from infra/envs/prod
+#   ECR_REPOSITORY       output ecr_repository_url from infra/envs/prod
+#   LAMBDA_FUNCTION      output batch_function_name from infra/envs/prod
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "src/**"
+      - "config/**"
+      - "pyproject.toml"
+      - "uv.lock"
+      - "Dockerfile"
+
+concurrency:
+  group: deploy-prod
+  cancel-in-progress: false
+
+permissions:
+  id-token: write # mint the OIDC token
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION }}
+
+      - name: Log in to Amazon ECR
+        uses: aws-actions/amazon-ecr-login@v2
+
+      # The Lambda function is arm64 (Graviton); build for that platform.
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Build and push image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/arm64
+          provenance: false # ECR rejects the OCI attestation manifest by default
+          push: true
+          tags: ${{ vars.ECR_REPOSITORY }}:${{ github.sha }}
+
+      - name: Roll the Lambda to the new image
+        run: |
+          aws lambda update-function-code \
+            --function-name "${{ vars.LAMBDA_FUNCTION }}" \
+            --image-uri "${{ vars.ECR_REPOSITORY }}:${{ github.sha }}" \
+            --publish
