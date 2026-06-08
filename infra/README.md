@@ -35,6 +35,9 @@ Terraform ≥ 1.9, the AWS CLI, and Docker on the machine doing the first deploy
 
 ### 1. An AWS account + one admin identity (for the first deploy only)
 
+> New to AWS? **[AWS_SETUP.md](AWS_SETUP.md)** is a click-by-click guide for this step — create
+> the account, make an admin user, and configure the CLI so Terraform authenticates cleanly.
+
 The very first `terraform apply` has to authenticate as *something*, and it cannot be the CI
 role (Terraform has not created that yet). So you need:
 
