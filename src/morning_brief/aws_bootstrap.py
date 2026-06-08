@@ -29,10 +29,16 @@ def bootstrap_secrets() -> None:
     ``setdefault`` so an already-set variable wins (a local override, or a warm
     re-invocation).
 
-    No-op outside Lambda (guarded on ``AWS_LAMBDA_FUNCTION_NAME``), so local, dev,
-    and test runs never reach for AWS.
+    No-op unless running in Lambda *with* a resolvable AWS region: the Lambda
+    runtime always sets ``AWS_LAMBDA_FUNCTION_NAME`` and ``AWS_REGION``, whereas
+    local, dev, and test runs (including the container under the Lambda Runtime
+    Interface Emulator, which sets the function name but no region) leave the region
+    unset. Guarding on both keeps every real invocation bootstrapping while letting
+    an offline emulator run the pipeline on mocks without reaching for AWS.
     """
-    if "AWS_LAMBDA_FUNCTION_NAME" not in os.environ:
+    if "AWS_LAMBDA_FUNCTION_NAME" not in os.environ or not (
+        os.environ.get("AWS_REGION") or os.environ.get("AWS_DEFAULT_REGION")
+    ):
         return
     environment = os.environ.get("MORNING_BRIEF_ENVIRONMENT", "production")
     path = _SSM_PATH.format(environment=environment)

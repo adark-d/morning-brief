@@ -210,6 +210,37 @@ All `/briefs` endpoints require `Authorization: Bearer <token>` (the value of
   curl -s -X POST http://127.0.0.1:8000/briefs/run -H "Authorization: Bearer $TOKEN"
   ```
 
+### Run as a container (AWS Lambda image)
+
+The production image (`Dockerfile`) targets AWS Lambda and serves both entry points
+from one artifact — the scheduled brief (`run_handler`, the default `CMD`) and the
+HTTP API (`api_handler`). Invoke a handler locally through the Lambda Runtime
+Interface Emulator (RIE), which ships inside the base image; `MORNING_BRIEF_ENVIRONMENT=test`
+keeps the run fully offline (mock data, LLM, and delivery; JSON audit store):
+
+```bash
+docker build -t morning-brief:local .
+
+# Scheduled brief (default CMD = run_handler)
+docker run --rm -p 9000:8080 \
+  -e MORNING_BRIEF_ENVIRONMENT=test \
+  -e MORNING_BRIEF_DELIVERY__EMAIL__RECIPIENTS='["desk@example.com"]' \
+  morning-brief:local
+# then, in another shell:
+curl -s "http://localhost:9000/2015-03-31/functions/function/invocations" -d '{}'
+```
+
+To exercise the API handler instead, override the `CMD` and POST an API Gateway
+HTTP API v2 event:
+
+```bash
+docker run --rm -p 9000:8080 \
+  -e MORNING_BRIEF_ENVIRONMENT=test \
+  morning-brief:local morning_brief.aws_handlers.api_handler
+curl -s "http://localhost:9000/2015-03-31/functions/function/invocations" \
+  -d '{"version":"2.0","routeKey":"GET /health","rawPath":"/health","requestContext":{"http":{"method":"GET","path":"/health","sourceIp":"127.0.0.1"}},"isBase64Encoded":false}'
+```
+
 ## Testing & quality gate
 
 Every check below must pass before a commit is considered ready:
