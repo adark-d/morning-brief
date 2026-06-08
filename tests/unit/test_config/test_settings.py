@@ -1,11 +1,16 @@
 from __future__ import annotations
 
 from collections.abc import Iterator
+from pathlib import Path
 
 import pytest
 
 from morning_brief.config import Environment, get_settings, load_settings
-from morning_brief.core.exceptions.errors import ConfigError, InvalidConfigError
+from morning_brief.core.exceptions.errors import (
+    ConfigError,
+    InvalidConfigError,
+    MissingConfigError,
+)
 
 
 @pytest.fixture(autouse=True)
@@ -88,3 +93,20 @@ def test_delivery_is_multi_channel_shaped() -> None:
 def test_email_recipients_load_via_nested_env(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("MORNING_BRIEF_DELIVERY__EMAIL__RECIPIENTS", '["a@b.com","c@d.com"]')
     assert load_settings().delivery.email.recipients == ("a@b.com", "c@d.com")
+
+
+def test_config_dir_override_is_used(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    (tmp_path / "default.yaml").write_text("llm:\n  model: override-model-xyz\n")
+    monkeypatch.setenv("MORNING_BRIEF_CONFIG_DIR", str(tmp_path))
+    assert load_settings().llm.model == "override-model-xyz"
+
+
+def test_missing_default_yaml_outside_development_raises(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    # An empty config dir + a non-development environment must fail loudly rather
+    # than booting on bare code defaults.
+    monkeypatch.setenv("MORNING_BRIEF_CONFIG_DIR", str(tmp_path))
+    monkeypatch.setenv("MORNING_BRIEF_ENVIRONMENT", "production")
+    with pytest.raises(MissingConfigError):
+        load_settings()

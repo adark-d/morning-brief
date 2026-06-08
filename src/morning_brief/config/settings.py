@@ -13,6 +13,8 @@ from pydantic_settings import (
     YamlConfigSettingsSource,
 )
 
+from morning_brief.core.exceptions import MissingConfigError
+
 
 class Environment(StrEnum):
     DEVELOPMENT = "development"
@@ -190,10 +192,19 @@ class Settings(BaseSettings):
             4. env-specific YAML — config/environments/<env>.yaml
             5. default YAML — config/default.yaml
         """
-        config_dir = Path(__file__).parent.parent.parent.parent / "config"
+        config_dir = cls._resolve_config_dir()
         default_yaml = config_dir / "default.yaml"
         env_name = cls._resolve_environment(init_settings, dotenv_settings)
         env_yaml = config_dir / "environments" / f"{env_name}.yaml"
+
+        # Fail loud rather than booting on bare code defaults: outside development a
+        # missing default.yaml means the config dir was not packaged/mounted (e.g. a
+        # mis-built container), which would otherwise select the wrong configuration.
+        if env_name != Environment.DEVELOPMENT and not default_yaml.exists():
+            raise MissingConfigError(
+                f"No default.yaml in config dir {config_dir} for environment "
+                f"{env_name!r}; set MORNING_BRIEF_CONFIG_DIR or include the config directory"
+            )
 
         sources: list[PydanticBaseSettingsSource] = [
             init_settings,
@@ -207,6 +218,19 @@ class Settings(BaseSettings):
             sources.append(YamlConfigSettingsSource(settings_cls, default_yaml))
 
         return tuple(sources)
+
+    @staticmethod
+    def _resolve_config_dir() -> Path:
+        """Locate the YAML config directory.
+
+        Prefers ``MORNING_BRIEF_CONFIG_DIR`` so a packaged build (e.g. a container)
+        can point at where it copied ``config/``. Falls back to the source-tree
+        layout (repo-root ``config/``) used when running from a checkout.
+        """
+        override = os.environ.get("MORNING_BRIEF_CONFIG_DIR")
+        if override:
+            return Path(override)
+        return Path(__file__).parent.parent.parent.parent / "config"
 
     @staticmethod
     def _resolve_environment(
