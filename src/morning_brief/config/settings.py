@@ -99,11 +99,12 @@ class GuardrailSettings(BaseModel):
 
 
 class AuditSettings(BaseModel):
-    backend: Annotated[
-        str, Field(description="Backend implementation, e.g. 'json', 'postgres'")
-    ] = "json"
+    backend: Annotated[str, Field(description="Backend implementation, e.g. 'json', 's3'")] = "json"
     json_store_path: Path = Path("./audit")
-    postgres_dsn: SecretStr | None = None
+    s3_bucket: str | None = None
+    s3_region: str | None = None
+    s3_prefix: Annotated[str, Field(min_length=1)] = "runs"
+    s3_kms_key_id: str | None = None
 
 
 class ObservabilitySettings(BaseModel):

@@ -89,7 +89,7 @@ def test_anthropic_without_api_key_raises_missing_config() -> None:
 
 def test_unsupported_audit_backend_raises() -> None:
     with pytest.raises(InvalidConfigError, match="audit backend"):
-        build_orchestrator(_mock_settings(audit=AuditSettings(backend="postgres")))
+        build_orchestrator(_mock_settings(audit=AuditSettings(backend="redis")))
 
 
 def test_unknown_delivery_channel_raises() -> None:
