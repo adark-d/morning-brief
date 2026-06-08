@@ -6,6 +6,7 @@ from datetime import UTC, datetime
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
+from aiosmtplib import SMTPAuthenticationError, SMTPServerDisconnected
 
 from morning_brief.core.interfaces.base import HealthState
 from morning_brief.core.models.audit import DeliveryStatus
@@ -31,7 +32,11 @@ def aiosmtplib_mock() -> Iterator[MagicMock]:
 
 
 def _channel(**kwargs: object) -> EmailDeliveryChannel:
-    params: dict[str, object] = {"host": "smtp.example.com", "sender": "brief@example.com"}
+    params: dict[str, object] = {
+        "host": "smtp.example.com",
+        "sender": "brief@example.com",
+        "retry_backoff_seconds": 0.0,  # no real sleeping in tests
+    }
     params.update(kwargs)
     return EmailDeliveryChannel(**params)  # type: ignore[arg-type]
 
@@ -74,6 +79,39 @@ async def test_delivery_times_out_per_recipient(aiosmtplib_mock: MagicMock) -> N
     results = await channel.deliver(_report(), ("a@x.com",))
 
     assert results[0].status == DeliveryStatus.FAILED
+
+
+@pytest.mark.asyncio
+async def test_retries_transient_error_then_succeeds(aiosmtplib_mock: MagicMock) -> None:
+    # A transient relay blip on the first attempt, then success on the retry.
+    aiosmtplib_mock.send.side_effect = [SMTPServerDisconnected("connection reset"), None]
+
+    results = await _channel(max_attempts=3).deliver(_report(), ("a@x.com",))
+
+    assert results[0].status == DeliveryStatus.DELIVERED
+    assert aiosmtplib_mock.send.await_count == 2
+
+
+@pytest.mark.asyncio
+async def test_exhausts_retries_on_persistent_transient_error(aiosmtplib_mock: MagicMock) -> None:
+    aiosmtplib_mock.send.side_effect = SMTPServerDisconnected("relay down")
+
+    results = await _channel(max_attempts=3).deliver(_report(), ("a@x.com",))
+
+    assert results[0].status == DeliveryStatus.FAILED
+    assert results[0].error_message is not None
+    assert aiosmtplib_mock.send.await_count == 3  # all attempts used, then gives up
+
+
+@pytest.mark.asyncio
+async def test_does_not_retry_a_permanent_error(aiosmtplib_mock: MagicMock) -> None:
+    # Auth failure is permanent; retrying only delays the recorded failure.
+    aiosmtplib_mock.send.side_effect = SMTPAuthenticationError(535, "bad credentials")
+
+    results = await _channel(max_attempts=3).deliver(_report(), ("a@x.com",))
+
+    assert results[0].status == DeliveryStatus.FAILED
+    assert aiosmtplib_mock.send.await_count == 1  # not retried
 
 
 def test_supported_format_is_html_email() -> None:
