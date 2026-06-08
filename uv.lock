@@ -155,6 +155,9 @@ wheels = [
 s3 = [
     { name = "mypy-boto3-s3" },
 ]
+ssm = [
+    { name = "mypy-boto3-ssm" },
+]
 
 [[package]]
 name = "botocore"
@@ -710,6 +713,18 @@ wheels = [
 ]
 
 [[package]]
+name = "mangum"
+version = "0.21.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "typing-extensions" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/89/cb/d9f4d685a0b8eceac10991e15ac471d9568e4e42c2489ae9bf072828c1c2/mangum-0.21.0.tar.gz", hash = "sha256:e31ed72d67f9958fa4379f65df77729906dec6dfa00afa6ed4e06c77833000de", size = 89130, upload-time = "2026-02-01T17:17:42.816Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/b7/50/e3c694b8e122551e4557450219283771334dee2ed5734a8398c8b8018c50/mangum-0.21.0-py3-none-any.whl", hash = "sha256:309e48f5c629542516c5106ecf079f4ec08809ed50df882238d98fe1392820c7", size = 17146, upload-time = "2026-02-01T17:17:41.553Z" },
+]
+
+[[package]]
 name = "markdown-it-py"
 version = "4.2.0"
 source = { registry = "https://pypi.org/simple" }
@@ -793,6 +808,7 @@ dependencies = [
     { name = "fastapi" },
     { name = "httpx" },
     { name = "jinja2" },
+    { name = "mangum" },
     { name = "pydantic" },
     { name = "pydantic-settings" },
     { name = "pyyaml" },
@@ -805,7 +821,7 @@ dependencies = [
 
 [package.dev-dependencies]
 dev = [
-    { name = "boto3-stubs", extra = ["s3"] },
+    { name = "boto3-stubs", extra = ["s3", "ssm"] },
     { name = "moto", extra = ["s3"] },
     { name = "mypy" },
     { name = "pyright" },
@@ -825,6 +841,7 @@ requires-dist = [
     { name = "fastapi", specifier = ">=0.136.3" },
     { name = "httpx", specifier = ">=0.28.1" },
     { name = "jinja2", specifier = ">=3.1.6" },
+    { name = "mangum", specifier = ">=0.19.0" },
     { name = "pydantic", specifier = ">=2.13.4" },
     { name = "pydantic-settings", specifier = ">=2.0" },
     { name = "pyyaml", specifier = ">=6.0.3" },
@@ -837,7 +854,7 @@ requires-dist = [
 
 [package.metadata.requires-dev]
 dev = [
-    { name = "boto3-stubs", extras = ["s3"], specifier = ">=1.35.0" },
+    { name = "boto3-stubs", extras = ["s3", "ssm"], specifier = ">=1.35.0" },
     { name = "moto", extras = ["s3"], specifier = ">=5.0.0" },
     { name = "mypy", specifier = ">=2.1.0" },
     { name = "pyright", specifier = ">=1.1.410" },
@@ -926,6 +943,15 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/04/2c/fc409f9ff5904a02cf4c2c1518c34d20cb56f22b2368b35fd0adda2926f3/mypy_boto3_s3-1.43.14.tar.gz", hash = "sha256:73d54c1d0999c73c403dc9a9a3da4a9722715aba116595af08c0d4675f8bc670", size = 77078, upload-time = "2026-05-22T20:48:28.251Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/b7/61/e8e74a3f4c729719efc8b1d00179bc16c302202eac32a1b56a842a997ed2/mypy_boto3_s3-1.43.14-py3-none-any.whl", hash = "sha256:ce77096d6c5f90020c45e34c83d2268ca2bb17726149ce5033751870f7fb4e97", size = 84277, upload-time = "2026-05-22T20:48:25.032Z" },
+]
+
+[[package]]
+name = "mypy-boto3-ssm"
+version = "1.43.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/72/1c/ad9d9304ae367e38cd16a8e1db12156daefd2eed3fe9ae7b761ace543010/mypy_boto3_ssm-1.43.0.tar.gz", hash = "sha256:33cb659b6182160141f9598fbdf6ff921dc94247a86f62152abd870b24e4ff62", size = 94384, upload-time = "2026-04-29T23:06:23.193Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/c9/3d/98f4a7086172b3f2b2b8ad3f4fae3dd642d279a6a4a6697dd553b8c0c125/mypy_boto3_ssm-1.43.0-py3-none-any.whl", hash = "sha256:56caee120bdc601aec269b4203e67365db7f1531797d87ff616e318249fc1399", size = 96040, upload-time = "2026-04-29T23:06:19.958Z" },
 ]
 
 [[package]]
