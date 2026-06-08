@@ -8,6 +8,23 @@ from email.message import EmailMessage
 import aiosmtplib
 import structlog
 
+# Imported by name (not referenced as aiosmtplib.X) so the retry predicate keeps real
+# exception classes even when the aiosmtplib module is patched in tests.
+from aiosmtplib import (
+    SMTPConnectError,
+    SMTPConnectTimeoutError,
+    SMTPReadTimeoutError,
+    SMTPServerDisconnected,
+    SMTPTimeoutError,
+)
+from tenacity import (
+    AsyncRetrying,
+    RetryCallState,
+    retry_if_exception_type,
+    stop_after_attempt,
+    wait_exponential,
+)
+
 from morning_brief.core.interfaces.base import HealthState, HealthStatus
 from morning_brief.core.interfaces.delivery_channel import DeliveryChannel
 from morning_brief.core.models.audit import DeliveryResult, DeliveryStatus
@@ -16,6 +33,22 @@ from morning_brief.core.models.report import RenderedReport, ReportFormat
 logger = structlog.get_logger(__name__)
 
 _CHANNEL_NAME = "email"
+
+# Only connection/timeout-class failures are retried — a transient relay blip (e.g. Resend
+# briefly unreachable). Permanent failures (auth, recipient/sender refused, 5xx responses)
+# are NOT retried: retrying them only delays the recorded failure.
+_TRANSIENT_ERRORS: tuple[type[Exception], ...] = (
+    SMTPConnectError,
+    SMTPConnectTimeoutError,
+    SMTPReadTimeoutError,
+    SMTPTimeoutError,
+    SMTPServerDisconnected,
+    ConnectionError,  # OS-level connection refused/reset
+    TimeoutError,  # asyncio.wait_for timeout (asyncio.TimeoutError aliases this in 3.11+)
+)
+
+# Upper bound on a single retry backoff, regardless of the configured base.
+_MAX_RETRY_BACKOFF_SECONDS = 8.0
 
 
 class EmailDeliveryChannel(DeliveryChannel):
@@ -31,6 +64,8 @@ class EmailDeliveryChannel(DeliveryChannel):
         password: str | None = None,
         start_tls: bool = True,
         timeout_seconds: float = 30.0,
+        max_attempts: int = 3,
+        retry_backoff_seconds: float = 1.0,
     ) -> None:
         self._host = host
         self._sender = sender
@@ -39,6 +74,8 @@ class EmailDeliveryChannel(DeliveryChannel):
         self._password = password
         self._start_tls = start_tls
         self._timeout = timeout_seconds
+        self._max_attempts = max_attempts
+        self._retry_backoff_seconds = retry_backoff_seconds
         logger.info("email_channel_initialised", host=host, port=port, sender=sender)
 
     async def deliver(
@@ -83,19 +120,10 @@ class EmailDeliveryChannel(DeliveryChannel):
     async def _deliver_one(self, report: RenderedReport, recipient: str) -> DeliveryResult:
         attempted_at = datetime.now(UTC)
         try:
-            await asyncio.wait_for(
-                aiosmtplib.send(
-                    self._build_message(report, recipient),
-                    hostname=self._host,
-                    port=self._port,
-                    username=self._username,
-                    password=self._password,
-                    start_tls=self._start_tls,
-                ),
-                timeout=self._timeout,
-            )
+            await self._send_with_retry(report, recipient)
         except Exception as exc:
-            # Record and move on — one bad address never aborts the rest.
+            # Retries exhausted, or a permanent (non-transient) failure. Record and move
+            # on — one bad address or a briefly-down relay never aborts the rest.
             logger.warning("email_delivery_failed", recipient=recipient, error=str(exc))
             return DeliveryResult(
                 recipient=recipient,
@@ -113,6 +141,45 @@ class EmailDeliveryChannel(DeliveryChannel):
             attempted_at=attempted_at,
             completed_at=datetime.now(UTC),
         )
+
+    async def _send_with_retry(self, report: RenderedReport, recipient: str) -> None:
+        """Send to one recipient, retrying only transient SMTP/connection failures.
+
+        Absorbs a short-lived relay outage (a few seconds) before the run is marked
+        failed; permanent failures (auth, refused recipient) are not retried and surface
+        immediately.
+        """
+
+        def _log_retry(state: RetryCallState) -> None:
+            exc = state.outcome.exception() if state.outcome is not None else None
+            logger.warning(
+                "email_delivery_retry",
+                recipient=recipient,
+                attempt=state.attempt_number,
+                error=str(exc),
+            )
+
+        async for attempt in AsyncRetrying(
+            stop=stop_after_attempt(self._max_attempts),
+            wait=wait_exponential(
+                multiplier=self._retry_backoff_seconds, max=_MAX_RETRY_BACKOFF_SECONDS
+            ),
+            retry=retry_if_exception_type(_TRANSIENT_ERRORS),
+            before_sleep=_log_retry,
+            reraise=True,
+        ):
+            with attempt:
+                await asyncio.wait_for(
+                    aiosmtplib.send(
+                        self._build_message(report, recipient),
+                        hostname=self._host,
+                        port=self._port,
+                        username=self._username,
+                        password=self._password,
+                        start_tls=self._start_tls,
+                    ),
+                    timeout=self._timeout,
+                )
 
     def _build_message(self, report: RenderedReport, recipient: str) -> EmailMessage:
         message = EmailMessage()
