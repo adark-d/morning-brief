@@ -2,12 +2,13 @@ from __future__ import annotations
 
 import stat
 import sys
-from collections.abc import Callable
+from collections.abc import Iterator
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
-from typing import cast
 
+import boto3
 import pytest
+from moto import mock_aws
 from tests.fixtures import make_brief_run
 
 from morning_brief.core.exceptions.errors import ImmutableRecordError
@@ -16,21 +17,31 @@ from morning_brief.core.interfaces.base import HealthState
 from morning_brief.core.models.audit import RunStatus
 from morning_brief.infrastructure.storage.json_audit_store import JsonAuditStore
 from morning_brief.infrastructure.storage.mock_audit_store import MockAuditStore
+from morning_brief.infrastructure.storage.s3_audit_store import S3AuditStore
+
+_S3_BUCKET = "morning-brief-audit-test"
+_S3_REGION = "us-east-1"
 
 
-def _store_factories() -> list[tuple[str, Callable[[Path], AuditStore]]]:
-    return [
-        ("mock", lambda _tmp: MockAuditStore()),
-        ("json", lambda tmp: JsonAuditStore(root_path=tmp / "audit")),
-    ]
+@pytest.fixture(params=["mock", "json", "s3"])
+def store(request: pytest.FixtureRequest, tmp_path: Path) -> Iterator[AuditStore]:
+    """Run the contract against each AuditStore implementation in turn.
 
-
-@pytest.fixture(params=_store_factories(), ids=lambda p: p[0])
-def store(request: pytest.FixtureRequest, tmp_path: Path) -> AuditStore:
-    """Returns each AuditStore implementation in turn."""
-    _name, factory = request.param
-    typed_factory = cast(Callable[[Path], AuditStore], factory)
-    return typed_factory(tmp_path)
+    The s3 case runs against a moto-mocked bucket created *without* Object Lock —
+    immutability is proven by the store's conditional-write logic, not by the
+    bucket (moto's WORM emulation is partial), so real Object Lock is validated in
+    deployment, not here.
+    """
+    backend: str = request.param
+    if backend == "mock":
+        yield MockAuditStore()
+    elif backend == "json":
+        yield JsonAuditStore(root_path=tmp_path / "audit")
+    else:
+        with mock_aws():
+            client = boto3.client("s3", region_name=_S3_REGION)
+            client.create_bucket(Bucket=_S3_BUCKET)
+            yield S3AuditStore(bucket=_S3_BUCKET, region=_S3_REGION, client=client)
 
 
 @pytest.mark.asyncio

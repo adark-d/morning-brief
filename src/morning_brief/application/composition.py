@@ -41,6 +41,7 @@ from morning_brief.infrastructure.llm.mock_analysis_engine import MockAnalysisEn
 from morning_brief.infrastructure.rendering.html_email_renderer import HtmlEmailRenderer
 from morning_brief.infrastructure.storage.json_audit_store import JsonAuditStore
 from morning_brief.infrastructure.storage.mock_audit_store import MockAuditStore
+from morning_brief.infrastructure.storage.s3_audit_store import S3AuditStore
 from morning_brief.prompts import PromptBuilder, PromptRegistry, PromptSelection, PromptValidator
 
 
@@ -115,6 +116,15 @@ def _build_audit_store(settings: Settings) -> AuditStore:
         return JsonAuditStore(root_path=settings.audit.json_store_path)
     if backend == "mock":
         return MockAuditStore()
+    if backend == "s3":
+        if settings.audit.s3_bucket is None:
+            raise MissingConfigError("s3 audit backend requires MORNING_BRIEF_AUDIT__S3_BUCKET")
+        return S3AuditStore(
+            bucket=settings.audit.s3_bucket,
+            region=settings.audit.s3_region,
+            prefix=settings.audit.s3_prefix,
+            kms_key_id=settings.audit.s3_kms_key_id,
+        )
     raise InvalidConfigError(f"Unsupported audit backend: {settings.audit.backend!r}")
 
 
