@@ -305,7 +305,7 @@ gate → image build → ECR push → Lambda roll → rollout verification.
 - **Terraform layout and commands:** [infra/README.md](infra/README.md).
 - **Decisions and trade-offs:** [docs/adr/0001-deployment.md](docs/adr/0001-deployment.md).
 - **TLS and ingress rate limiting** apply to the (deferred) HTTP API surface. See
-  [SECURITY.md](SECURITY.md) for the full set of required controls.
+  [docs/security.md](docs/security.md) for the full set of required controls.
 
 Running it outside AWS remains supported — the pipeline is plain Python behind
 interfaces: point any scheduler at `morning-brief run` and choose the audit backend
@@ -322,4 +322,4 @@ via configuration.
   architecture decision record.
 - [docs/reusability-and-the-fde-role.md](docs/reusability-and-the-fde-role.md) —
   the reuse model behind the design.
-- [SECURITY.md](SECURITY.md) — security posture and deployment controls.
+- [docs/security.md](docs/security.md) — security posture and deployment controls.

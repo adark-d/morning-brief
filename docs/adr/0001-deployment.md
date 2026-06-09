@@ -27,7 +27,7 @@ sitting idle 99.9% of the time.
 
 Constraints carried in from the codebase:
 - Secrets come only from `MORNING_BRIEF_*` environment variables (see `.env.example`).
-- `SECURITY.md` requires the deployment to provide **TLS**, **rate-limiting on
+- `docs/security.md` requires the deployment to provide **TLS**, **rate-limiting on
   `POST /briefs/run`**, **encrypted/restricted audit storage**, and a path for
   **token rotation**.
 - The audit trail must be **immutable** (compliance artifact).
@@ -159,7 +159,7 @@ rewrite.
 ### 4.5 API — API Gateway HTTP API
 
 - **HTTP API** (cheaper/simpler than REST API) → API Lambda.
-- **Rate limiting** (a `SECURITY.md` requirement) is satisfied by API Gateway
+- **Rate limiting** (a `docs/security.md` requirement) is satisfied by API Gateway
   **route-level throttling** on `POST /briefs/run`, plus an optional **WAF** rate rule.
 - **TLS** via **ACM** on a custom domain; HTTP is not exposed.
 - App-level auth is unchanged: fail-closed bearer token, constant-time comparison.
@@ -210,9 +210,9 @@ introduced, which this design deliberately avoids.)
   no stored AWS keys). Pipeline: run the existing gate (ruff, mypy, pyright, pytest,
   pip-audit) → build image → push to ECR → `terraform apply` (or update function code).
 
-## 5. Security — mapping `SECURITY.md` to AWS controls
+## 5. Security — mapping `docs/security.md` to AWS controls
 
-| Requirement (SECURITY.md) | AWS implementation |
+| Requirement (docs/security.md) | AWS implementation |
 |---|---|
 | TLS required | ACM certificate on API Gateway; no HTTP listener |
 | Rate-limit `POST /briefs/run` | API Gateway route throttling + optional WAF rate rule |

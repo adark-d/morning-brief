@@ -587,7 +587,7 @@ email/Slack. **No downtime concept** — it's a daily batch, so deploying betwee
 
 ## Part 9 — Security model summary
 
-How the requirements in [SECURITY.md](../SECURITY.md) map to AWS controls:
+How the requirements in [security.md](security.md) map to AWS controls:
 
 | Requirement | How it's met |
 |---|---|
