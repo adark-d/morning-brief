@@ -32,6 +32,12 @@ variable "image_tag" {
   type        = string
 }
 
+variable "object_lock_mode" {
+  description = "Audit bucket Object Lock mode: COMPLIANCE (immutable for everyone, irreversible) or GOVERNANCE (admins with bypass can still delete — suits time-boxed deployments)."
+  type        = string
+  default     = "COMPLIANCE"
+}
+
 variable "retention_years" {
   description = "Object Lock retention in years. IRREVERSIBLE in COMPLIANCE mode."
   type        = number

@@ -47,10 +47,11 @@ module "ecr" {
 }
 
 module "audit_s3" {
-  source          = "../../modules/audit_s3"
-  bucket_name     = var.audit_bucket_name
-  kms_key_arn     = module.kms.key_arn
-  retention_years = var.retention_years
+  source           = "../../modules/audit_s3"
+  bucket_name      = var.audit_bucket_name
+  kms_key_arn      = module.kms.key_arn
+  object_lock_mode = var.object_lock_mode
+  retention_years  = var.retention_years
 }
 
 module "secrets" {
