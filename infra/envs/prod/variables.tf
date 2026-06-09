@@ -32,6 +32,12 @@ variable "image_tag" {
   type        = string
 }
 
+variable "lambda_timeout_seconds" {
+  description = "Batch Lambda timeout (s). Must exceed worst-case LLM time — primary + fallback each exhausting llm.timeout_seconds in production.yaml — plus fetch/render/delivery overhead."
+  type        = number
+  default     = 360
+}
+
 variable "object_lock_mode" {
   description = "Audit bucket Object Lock mode: COMPLIANCE (immutable for everyone, irreversible) or GOVERNANCE (admins with bypass can still delete — suits time-boxed deployments)."
   type        = string
