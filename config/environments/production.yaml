@@ -6,7 +6,10 @@ environment: production
 llm:
   model: claude-opus-4-7
   max_tokens: 2000
-  timeout_seconds: 30.0
+  # Opus generating the full structured brief routinely needs >30s; 120s covers it.
+  # Coupled to the Lambda timeout (lambda_timeout_seconds in infra/envs/prod): the
+  # function must outlive primary + fallback both exhausting this budget.
+  timeout_seconds: 120.0
   max_retries: 1
 
 delivery:

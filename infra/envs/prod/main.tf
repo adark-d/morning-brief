@@ -81,6 +81,7 @@ module "batch_lambda" {
   role_arn              = module.iam.batch_role_arn
   scheduler_role_arn    = module.iam.scheduler_role_arn
   environment_variables = local.lambda_env
+  timeout_seconds       = var.lambda_timeout_seconds
 }
 
 module "observability" {
