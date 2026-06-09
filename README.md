@@ -34,13 +34,19 @@ A full walkthrough of the design lives in [docs/architecture.md](docs/architectu
 | Validation | Pydantic v2 |
 | Config | Pydantic Settings (YAML + env) |
 | LLM | Anthropic Claude (default), pluggable via interface |
-| API | FastAPI |
+| API | FastAPI (Mangum adapter for Lambda) |
 | HTTP | httpx (async) |
 | Templating | Jinja2 |
 | Logging | structlog |
 | Retries | tenacity |
 | Testing | pytest |
 | Tooling | uv, ruff, mypy + pyright (strict), pip-audit |
+| Runtime | AWS Lambda (arm64 container image), EventBridge Scheduler |
+| Storage | S3 with Object Lock (WORM audit store), SSM Parameter Store (secrets) |
+| Email | Resend (SMTP) |
+| Observability | CloudWatch alarms → SNS (run-failed, retries-exhausted, missed-run) |
+| Infrastructure | Terraform (modular, remote state), Docker, ECR, KMS |
+| CI/CD | GitHub Actions — shared quality gate, OIDC deploys (no stored keys), SHA-pinned actions + Dependabot |
 
 ## Prerequisites
 
@@ -274,18 +280,33 @@ docs/                # architecture and design notes
 
 ## Deployment
 
-- **Scheduling is the deployment's job.** Point a cron job / Kubernetes CronJob /
-  cloud scheduler at `morning-brief run` using the cadence in `schedule_cron`
-  (default: 07:00 GMT on weekdays). There is no in-process daemon to keep alive.
-- **Persist the audit store.** Production uses the JSON audit backend; set
-  `MORNING_BRIEF_AUDIT__JSON_STORE_PATH` to a persistent volume, or audit records
-  are lost on restart.
-- **TLS and ingress rate limiting** are deployment-provided. See
+Production runs on AWS, all-serverless: EventBridge Scheduler invokes the batch
+Lambda (this repo's container image) at 07:00 Europe/London on weekdays; secrets load
+from SSM Parameter Store at cold start; every run writes an immutable record to the
+S3 Object Lock audit bucket; CloudWatch alarms notify via SNS if a run fails or goes
+missing. Deploys are owned by the GitHub Actions pipeline: merge to `main` → quality
+gate → image build → ECR push → Lambda roll → rollout verification.
+
+- **Deploying from scratch:** [docs/deployment-runbook.md](docs/deployment-runbook.md)
+  — the full zero-to-production guide with per-step verification.
+- **Terraform layout and commands:** [infra/README.md](infra/README.md).
+- **Decisions and trade-offs:** [docs/adr/0001-deployment.md](docs/adr/0001-deployment.md).
+- **TLS and ingress rate limiting** apply to the (deferred) HTTP API surface. See
   [SECURITY.md](SECURITY.md) for the full set of required controls.
+
+Running it outside AWS remains supported — the pipeline is plain Python behind
+interfaces: point any scheduler at `morning-brief run` and choose the audit backend
+via configuration.
 
 ## Documentation
 
 - [docs/architecture.md](docs/architecture.md) — how the system is built and why.
+- [docs/deployment-runbook.md](docs/deployment-runbook.md) — zero-to-production
+  deployment, verified step by step.
+- [docs/deployment-learning-guide.md](docs/deployment-learning-guide.md) — the
+  concepts behind the deployment (cloud, IAM, OIDC, Terraform) from first principles.
+- [docs/adr/0001-deployment.md](docs/adr/0001-deployment.md) — the deployment
+  architecture decision record.
 - [docs/reusability-and-the-fde-role.md](docs/reusability-and-the-fde-role.md) —
   the reuse model behind the design.
 - [SECURITY.md](SECURITY.md) — security posture and deployment controls.
