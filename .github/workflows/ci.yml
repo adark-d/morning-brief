@@ -1,29 +1,16 @@
 name: CI
 
+# Runs the shared quality gate (gate.yml) on every PR and every push to main.
+# The deploy workflow calls the same gate in front of each roll.
+
 on:
   push:
     branches: [main]
   pull_request:
 
+permissions:
+  contents: read
+
 jobs:
   gate:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v6
-        with:
-          python-version: "3.13"
-          enable-cache: true
-      - run: uv sync --frozen
-      - name: ruff (lint)
-        run: uv run ruff check src tests
-      - name: ruff (format)
-        run: uv run ruff format --check src tests
-      - name: mypy
-        run: uv run mypy src tests
-      - name: pyright
-        run: uv run pyright
-      - name: pytest
-        run: uv run pytest
-      - name: pip-audit (dependency vulnerabilities)
-        run: uv run --with pip-audit pip-audit
+    uses: ./.github/workflows/gate.yml
