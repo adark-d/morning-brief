@@ -3,6 +3,13 @@
 Implements the AWS deployment decided in [docs/adr/0001-deployment.md](../docs/adr/0001-deployment.md).
 Phase 1 ships the **scheduled brief** (batch only); the HTTP API is deferred to Phase 2.
 
+> **Deploying for the first time?** Use the full runbook:
+> [docs/deployment-runbook.md](../docs/deployment-runbook.md). It covers everything this
+> file assumes (AWS account/identity setup, Resend and DNS, GitHub environment and
+> variables), adds a verification command after every step, and documents the failure
+> modes hit during the first real deployment with their fixes. This file remains the
+> quick reference for the Terraform layout and commands.
+
 ```
 infra/
 ├── bootstrap/        # remote-state backend (S3 + DynamoDB lock) — applied once, local state
