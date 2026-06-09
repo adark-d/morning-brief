@@ -125,7 +125,9 @@ The image is built from the repo-root `Dockerfile`. Merge the Dockerfile change 
    ```bash
    REPO=$(terraform output -raw ecr_repository_url)
    aws ecr get-login-password --region eu-west-2 | docker login --username AWS --password-stdin "${REPO%/*}"
-   docker build --platform linux/arm64 -t "$REPO:<tag>" ../../..   # repo root holds the Dockerfile
+   # --provenance=false: Docker's default build attestation produces a multi-manifest
+   # image that ECR stores but Lambda rejects ("image manifest ... not supported").
+   docker build --platform linux/arm64 --provenance=false -t "$REPO:<tag>" ../../..   # repo root holds the Dockerfile
    docker push "$REPO:<tag>"
    ```
 
