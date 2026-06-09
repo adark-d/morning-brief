@@ -13,6 +13,12 @@ variable "github_repo" {
   type        = string
 }
 
+variable "github_environment" {
+  description = "GitHub Actions environment whose OIDC tokens may assume the deploy role."
+  type        = string
+  default     = "production"
+}
+
 variable "create_oidc_provider" {
   description = "Create the GitHub OIDC provider. Set false if one already exists in the account."
   type        = bool
