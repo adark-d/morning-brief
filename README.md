@@ -1,7 +1,20 @@
+<div align="center">
+
 # Morning Brief
 
-A production-grade LLM pipeline that compresses ~60 minutes of pre-market
-context-assembly into a 3-minute briefing for fixed-income desks.
+**A production-grade LLM pipeline that compresses ~60 minutes of pre-market
+context-assembly into a 3-minute briefing for fixed-income desks.**
+
+[![CI](https://github.com/adark-d/morning-brief/actions/workflows/ci.yml/badge.svg)](https://github.com/adark-d/morning-brief/actions/workflows/ci.yml)
+[![Deploy](https://github.com/adark-d/morning-brief/actions/workflows/deploy.yml/badge.svg)](https://github.com/adark-d/morning-brief/actions/workflows/deploy.yml)
+[![Python 3.13](https://img.shields.io/badge/python-3.13-3776AB?logo=python&logoColor=white)](https://www.python.org/)
+[![uv](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/uv/main/assets/badge/v0.json)](https://github.com/astral-sh/uv)
+[![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
+[![Types: mypy + pyright strict](https://img.shields.io/badge/types-mypy%20%2B%20pyright%20strict-blue)](pyproject.toml)
+[![Deployed on AWS Lambda](https://img.shields.io/badge/deployed-AWS%20Lambda-FF9900?logo=awslambda&logoColor=white)](docs/deployment-runbook.md)
+[![IaC: Terraform](https://img.shields.io/badge/IaC-Terraform-844FBA?logo=terraform&logoColor=white)](infra/)
+
+</div>
 
 On a schedule it fetches market data, validates it, asks an LLM for a structured
 analysis, verifies that analysis, renders and delivers it by email, and writes an
