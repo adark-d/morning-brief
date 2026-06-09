@@ -28,6 +28,13 @@ resource "aws_lambda_function" "batch" {
     variables = var.environment_variables
   }
 
+  # The deploy pipeline rolls the function to each new image (update-function-code);
+  # Terraform owns the function's configuration, not its code. Without this, every
+  # apply would revert the image to the bootstrap tag in tfvars.
+  lifecycle {
+    ignore_changes = [image_uri]
+  }
+
   depends_on = [aws_cloudwatch_log_group.batch]
   tags       = var.tags
 }
