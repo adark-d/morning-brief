@@ -79,6 +79,9 @@ values out-of-band (runbook step 6) so they never enter Terraform state.
   only if you want Slack alerts.
 - **Set the secret values** with `aws ssm put-parameter` (runbook step 6).
 - **Set 4 GitHub Actions variables** so CI can deploy — all are Terraform *outputs* (see below).
+- **Create the `production` GitHub environment** (Settings → Environments) with
+  *Deployment branches* restricted to `main`. The deploy role's trust policy only accepts
+  OIDC tokens minted for this environment, so deploys fail until it exists.
 
 ### What you do NOT need
 
@@ -152,10 +155,14 @@ The image is built from the repo-root `Dockerfile`. Merge the Dockerfile change 
 
 ## Ongoing deploys
 
-After the first deploy, [`.github/workflows/deploy.yml`](../.github/workflows/deploy.yml) builds,
-pushes, and rolls the Lambda via the OIDC deploy role. Set these repo **Actions variables** from
-the prod outputs: `AWS_REGION`, `AWS_DEPLOY_ROLE_ARN` (`github_deploy_role_arn`), `ECR_REPOSITORY`
-(`ecr_repository_url`), `LAMBDA_FUNCTION` (`batch_function_name`).
+After the first deploy, [`.github/workflows/deploy.yml`](../.github/workflows/deploy.yml) runs the
+quality gate, builds, pushes, rolls the Lambda via the OIDC deploy role, and waits until the
+rollout reports `Successful`. Set these repo **Actions variables** from the prod outputs:
+`AWS_REGION`, `AWS_DEPLOY_ROLE_ARN` (`github_deploy_role_arn`), `ECR_REPOSITORY`
+(`ecr_repository_url`), `LAMBDA_FUNCTION` (`batch_function_name`), and create the `production`
+GitHub environment restricted to `main` (one-time step 4 above).
+
+To roll back, revert the offending commit on `main`; the workflow redeploys the reverted state.
 
 ## Validate locally (no AWS needed)
 

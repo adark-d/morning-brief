@@ -28,11 +28,14 @@ data "aws_iam_policy_document" "deploy_assume" {
       variable = "token.actions.githubusercontent.com:aud"
       values   = ["sts.amazonaws.com"]
     }
-    # Restrict to this repository (any branch/tag). Tighten to a ref or environment if needed.
+    # Only tokens minted for the protected deploy environment may assume the role.
+    # The environment's "deployment branches: main" rule is enforced GitHub-side;
+    # this claim binds the role to jobs that ran inside it, so no other workflow,
+    # branch, or fork can reach AWS even with a stolen workflow file.
     condition {
-      test     = "StringLike"
+      test     = "StringEquals"
       variable = "token.actions.githubusercontent.com:sub"
-      values   = ["repo:${var.github_owner}/${var.github_repo}:*"]
+      values   = ["repo:${var.github_owner}/${var.github_repo}:environment:${var.github_environment}"]
     }
   }
 }
@@ -51,7 +54,9 @@ data "aws_iam_policy_document" "deploy" {
     actions   = ["ecr:GetAuthorizationToken"]
     resources = ["*"]
   }
-  # Push/pull layers + images to the project repository only.
+  # Push/pull layers + images to the project repository only. DescribeImages lets
+  # the deploy workflow detect an already-pushed commit and skip the rebuild
+  # (tags are immutable, so a re-pushed rebuild would be rejected).
   statement {
     sid    = "EcrPush"
     effect = "Allow"
@@ -62,6 +67,7 @@ data "aws_iam_policy_document" "deploy" {
       "ecr:CompleteLayerUpload",
       "ecr:PutImage",
       "ecr:BatchGetImage",
+      "ecr:DescribeImages",
     ]
     resources = [var.ecr_repository_arn]
   }

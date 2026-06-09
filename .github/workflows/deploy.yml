@@ -5,11 +5,20 @@ name: Deploy (batch Lambda)
 # by infra/modules/cicd. The first deploy is manual (see infra/README.md); thereafter
 # this runs on a push to main or on demand.
 #
+# The deploy job runs in the `production` GitHub environment (Settings -> Environments).
+# Create it with "Deployment branches" restricted to main: GitHub then refuses to start
+# the job from any other ref, and the IAM trust policy only accepts OIDC tokens minted
+# for that environment, so no other workflow, branch, or repo can assume the role.
+#
 # Required repository variables (Settings -> Variables -> Actions):
 #   AWS_REGION           e.g. eu-west-2
 #   AWS_DEPLOY_ROLE_ARN  output github_deploy_role_arn from infra/envs/prod
 #   ECR_REPOSITORY       output ecr_repository_url from infra/envs/prod
 #   LAMBDA_FUNCTION      output batch_function_name from infra/envs/prod
+#
+# Rollback: revert the offending commit on main and let this workflow redeploy.
+# Every image is tagged with its commit SHA, so the audit trail of what ran when
+# is the git history.
 
 on:
   workflow_dispatch:
@@ -21,41 +30,78 @@ on:
       - "pyproject.toml"
       - "uv.lock"
       - "Dockerfile"
+      - ".dockerignore"
 
 concurrency:
   group: deploy-prod
-  cancel-in-progress: false
+  cancel-in-progress: false # never cancel a deploy mid-roll
 
 permissions:
-  id-token: write # mint the OIDC token
   contents: read
 
 jobs:
-  deploy:
-    runs-on: ubuntu-latest
-    # Skip until the infrastructure exists. AWS_DEPLOY_ROLE_ARN is a Terraform output,
-    # set as a repo variable after the first `terraform apply`. Until then there is
-    # nothing to deploy to, so the job is a clean no-op rather than failing on missing
-    # credentials. It activates automatically once the variable is set.
+  # A deploy certifies exactly what it ships: the same gate CI runs on PRs runs
+  # here, in front of the roll, whatever the trigger (push or manual dispatch).
+  #
+  # Skip until the infrastructure exists. AWS_DEPLOY_ROLE_ARN is a Terraform output,
+  # set as a repo variable after the first `terraform apply`. Until then there is
+  # nothing to deploy to, so the run is a clean no-op rather than failing on missing
+  # credentials. It activates automatically once the variable is set; skipping the
+  # gate also skips the dependent deploy job.
+  gate:
     if: ${{ vars.AWS_DEPLOY_ROLE_ARN != '' }}
+    uses: ./.github/workflows/gate.yml
+
+  deploy:
+    needs: gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 30 # emulated arm64 builds are slow, but not six-hours slow
+    environment: production
+    permissions:
+      id-token: write # mint the OIDC token
+      contents: read
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
 
       - name: Configure AWS credentials (OIDC)
-        uses: aws-actions/configure-aws-credentials@v4
+        uses: aws-actions/configure-aws-credentials@7474bc4690e29a8392af63c5b98e7449536d5c3a # v4.3.1
         with:
           role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
           aws-region: ${{ vars.AWS_REGION }}
 
       - name: Log in to Amazon ECR
-        uses: aws-actions/amazon-ecr-login@v2
+        uses: aws-actions/amazon-ecr-login@fa648b43de3d4d023bcb3f89ed6940096949c419 # v2.1.5
+
+      # ECR tags are immutable and Docker builds are not byte-reproducible, so
+      # rebuilding an already-pushed commit would be rejected at push time. Skip
+      # the build instead: re-runs after a failed roll deploy the existing image.
+      - name: Check for an existing image for this commit
+        id: image
+        env:
+          ECR_REPOSITORY: ${{ vars.ECR_REPOSITORY }}
+        run: |
+          repository_name="${ECR_REPOSITORY#*/}"
+          if output=$(aws ecr describe-images \
+               --repository-name "$repository_name" \
+               --image-ids imageTag="$GITHUB_SHA" 2>&1); then
+            echo "Image $GITHUB_SHA already in ECR; the build will be skipped."
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+          elif echo "$output" | grep -q "ImageNotFoundException"; then
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "$output"
+            exit 1
+          fi
 
       # The Lambda function is arm64 (Graviton); build for that platform.
-      - uses: docker/setup-qemu-action@v3
-      - uses: docker/setup-buildx-action@v3
+      - uses: docker/setup-qemu-action@c7c53464625b32c7a7e944ae62b3e17d2b600130 # v3.7.0
+        if: steps.image.outputs.exists == 'false'
+      - uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3.12.0
+        if: steps.image.outputs.exists == 'false'
 
       - name: Build and push image
-        uses: docker/build-push-action@v6
+        if: steps.image.outputs.exists == 'false'
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6.19.2
         with:
           context: .
           platforms: linux/arm64
@@ -63,9 +109,30 @@ jobs:
           push: true
           tags: ${{ vars.ECR_REPOSITORY }}:${{ github.sha }}
 
+      # No --publish: the scheduler invokes $LATEST, so numbered versions would be
+      # dead weight nothing references.
       - name: Roll the Lambda to the new image
+        env:
+          FUNCTION_NAME: ${{ vars.LAMBDA_FUNCTION }}
+          IMAGE_URI: ${{ vars.ECR_REPOSITORY }}:${{ github.sha }}
         run: |
           aws lambda update-function-code \
-            --function-name "${{ vars.LAMBDA_FUNCTION }}" \
-            --image-uri "${{ vars.ECR_REPOSITORY }}:${{ github.sha }}" \
-            --publish
+            --function-name "$FUNCTION_NAME" \
+            --image-uri "$IMAGE_URI"
+
+      # update-function-code is asynchronous: it returns while the rollout is still
+      # InProgress, and the update can fail after that. The deploy is not done until
+      # the function is confirmed to be running the new image.
+      - name: Verify the rollout
+        env:
+          FUNCTION_NAME: ${{ vars.LAMBDA_FUNCTION }}
+        run: |
+          if ! aws lambda wait function-updated-v2 --function-name "$FUNCTION_NAME"; then
+            aws lambda get-function --function-name "$FUNCTION_NAME" \
+              --query 'Configuration.[LastUpdateStatus,LastUpdateStatusReasonCode,LastUpdateStatusReason]' \
+              --output text
+            echo "::error::Lambda rollout did not reach LastUpdateStatus=Successful"
+            exit 1
+          fi
+          aws lambda get-function --function-name "$FUNCTION_NAME" \
+            --query 'Configuration.[State,LastUpdateStatus]' --output text

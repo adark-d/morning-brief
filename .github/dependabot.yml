@@ -1,0 +1,13 @@
+# Keeps the SHA-pinned actions in .github/workflows fresh: Dependabot opens a
+# weekly PR bumping the pins (SHA + version comment together), grouped into one
+# PR so seven actions don't mean seven PRs. The pins stay immutable between
+# bumps — updates arrive as reviewable diffs, never silently.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      github-actions:
+        patterns: ["*"]

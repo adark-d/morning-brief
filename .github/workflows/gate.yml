@@ -1,0 +1,41 @@
+name: Gate
+
+# The quality gate, callable as a reusable workflow. Defined once so "what green
+# means" is identical everywhere it runs: CI runs it on every push and PR, and the
+# deploy workflow runs it in front of every roll — a deploy certifies exactly the
+# commit it ships, regardless of how it was triggered.
+#
+# Third-party actions are pinned to commit SHAs (tag in the trailing comment):
+# tags are mutable, so a moved tag in a compromised action would otherwise run
+# arbitrary code in our workflows. Dependabot bumps the pins weekly
+# (.github/dependabot.yml); they never move on their own.
+
+on:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+      - uses: astral-sh/setup-uv@d0cc045d04ccac9d8b7881df0226f9e82c39688e # v6.8.0
+        with:
+          python-version: "3.13"
+          enable-cache: true
+      - run: uv sync --frozen
+      - name: ruff (lint)
+        run: uv run ruff check src tests
+      - name: ruff (format)
+        run: uv run ruff format --check src tests
+      - name: mypy
+        run: uv run mypy src tests
+      - name: pyright
+        run: uv run pyright
+      - name: pytest
+        run: uv run pytest
+      - name: pip-audit (dependency vulnerabilities)
+        run: uv run --with pip-audit pip-audit
