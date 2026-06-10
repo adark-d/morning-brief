@@ -1,52 +1,31 @@
-# Security
+# Security policy
 
-The threat model and controls for morning-brief. Report suspected vulnerabilities
-privately to the maintainers — do not open a public issue.
+## Reporting a vulnerability
 
-## Secrets & configuration
-- All secrets are `SecretStr`, sourced only from `MORNING_BRIEF_*` environment
-  variables (see `.env.example`). They never appear in code, YAML, logs, or API
-  responses, and are unwrapped only at the composition root.
-- Config is strictly namespaced: only `MORNING_BRIEF_<SECTION>__<FIELD>` binds.
-  Nested settings are `BaseModel` (not `BaseSettings`), so a stray unprefixed env
-  var (e.g. `NAME`, `TIMEOUT_SECONDS`) cannot leak into or corrupt configuration.
+Please report suspected vulnerabilities **privately** via GitHub:
+**Security tab → "Report a vulnerability"** (private vulnerability reporting is
+enabled on this repository). Do not open a public issue for security findings.
 
-## API
-- Every `/briefs` endpoint requires a bearer token (`HTTPBearer`). Auth is
-  **fail-closed**: with no token configured, protected routes return 503. The token
-  is compared in constant time. `/health` is intentionally open.
-- Inputs are validated at the edge (`run_id` as `UUID`, `on` as `date`), rejecting
-  injection (e.g. glob metacharacters) before it can reach storage. The audit store
-  also escapes glob characters as defence in depth.
-- Responses use explicit DTOs (`BriefRunResponse`) that never carry recipient
-  addresses or the raw market snapshot; errors return a generic `ErrorResponse`
-  envelope and never leak internals or stack traces.
+You can expect an acknowledgement within a few days. This is a solo-maintained
+project; fixes for confirmed issues are prioritised ahead of all other work.
 
-## Data at rest
-- JSON audit records are written `0600` inside `0700` directories. This is defence
-  in depth — the primary control is deployment (a dedicated service user on a
-  restricted, encrypted volume). The Postgres backend defers access control to the
-  database.
+## Scope
 
-## Dependency scanning
-```bash
-uvx pip-audit        # ephemeral; run in CI and before each release
-```
+In scope: the application code (`src/`), the GitHub Actions workflows
+(`.github/workflows/`), and the Terraform under `infra/`.
 
-CI enforces this: `.github/workflows/ci.yml` runs the full gate (ruff, mypy,
-pyright, pytest) plus `pip-audit` on every push and pull request.
+Out of scope: vulnerabilities in third-party dependencies with no exploitable
+path through this codebase (these are tracked via `pip-audit` in CI and
+Dependabot), and issues requiring privileged access to the deployment's AWS
+account.
 
-## Deployment-enforced controls
-These cannot live in the application and must be provided by the deployment:
+## Supported versions
 
-- **TLS is required.** The bearer token is a credential; the API must run behind TLS
-  (ingress / reverse proxy) and must never be exposed over plain HTTP.
-- **Rate limiting** on `POST /briefs/run` — it triggers a paid LLM call, so a leaked
-  token enables cost amplification / DoS. Enforce it at the ingress / API gateway
-  (the layer that limits correctly across instances); the application intentionally
-  does not implement per-process limiting.
+The `main` branch and the currently deployed image (always built from `main`)
+are the only supported versions. There are no maintained release lines.
 
-## Remaining consideration
-- **Token rotation / per-caller identity.** Auth is a single shared token today —
-  no per-caller identity and no independent revocation. Revisit if multiple clients
-  or audit-by-caller are required (per-client keys in a store, or OIDC).
+## Security posture
+
+For how the system handles secrets, authentication, data at rest, and the
+controls the deployment provides, see the security design document:
+[docs/security.md](docs/security.md).

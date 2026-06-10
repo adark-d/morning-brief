@@ -248,7 +248,7 @@ there's no in-process daemon to keep alive.
 | **Config namespacing (`BaseModel` nesting)** | Only `MORNING_BRIEF_*` vars configure the app; stray environment variables can't corrupt config or crash startup. |
 | **Errors as first-class data** | Failures are recorded as `BriefError` objects on the run, not just logged — they're queryable after the fact. |
 
-### Security posture (summary; full threat model in `SECURITY.md`)
+### Security posture (summary; full threat model in `docs/security.md`)
 - Secrets are `SecretStr`, never logged or returned; the API carries no secrets.
 - Fail-closed bearer auth, constant-time comparison.
 - Input validated at the edge — `run_id` is a `UUID`, rejecting injection before it
@@ -295,7 +295,7 @@ uv run morning-brief serve   # the HTTP API; docs at /docs
 
 Configuration: `config/*.yaml` + `MORNING_BRIEF_*` env (secrets via `.env`, see
 `.env.example`). Scheduling, TLS, and rate limiting are deployment concerns — see
-`SECURITY.md` for the controls the deployment must provide.
+`docs/security.md` for the controls the deployment must provide.
 
 ## 8. Concept → file map
 
@@ -315,4 +315,4 @@ Configuration: `config/*.yaml` + `MORNING_BRIEF_*` env (secrets via `.env`, see
 | Logging config | `observability/logging.py` |
 | Stage / provider timing | `observability/timing.py` |
 | CLI / entry point | `cli.py`, `__main__.py` |
-| Security threat model | `SECURITY.md` |
+| Security threat model | `docs/security.md` |
