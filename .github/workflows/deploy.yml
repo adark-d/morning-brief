@@ -1,24 +1,13 @@
 name: Deploy (batch Lambda)
 
 # Builds the container image, pushes it to ECR, and rolls the batch Lambda to it.
-# Authenticates to AWS with GitHub OIDC (no stored keys) using the deploy role created
-# by infra/modules/cicd. The first deploy is manual (see infra/README.md); thereafter
-# this runs on a push to main or on demand.
+# Auth is GitHub OIDC (no stored keys) via the role from infra/modules/cicd.
 #
-# The deploy job runs in the `production` GitHub environment (Settings -> Environments).
-# Create it with "Deployment branches" restricted to main: GitHub then refuses to start
-# the job from any other ref, and the IAM trust policy only accepts OIDC tokens minted
-# for that environment, so no other workflow, branch, or repo can assume the role.
+# Needs the `production` GitHub environment (deployment branches: main only) and the
+# repository variables AWS_REGION, AWS_DEPLOY_ROLE_ARN, ECR_REPOSITORY, LAMBDA_FUNCTION
+# (the last three are Terraform outputs — see docs/deployment-runbook.md).
 #
-# Required repository variables (Settings -> Variables -> Actions):
-#   AWS_REGION           e.g. eu-west-2
-#   AWS_DEPLOY_ROLE_ARN  output github_deploy_role_arn from infra/envs/prod
-#   ECR_REPOSITORY       output ecr_repository_url from infra/envs/prod
-#   LAMBDA_FUNCTION      output batch_function_name from infra/envs/prod
-#
-# Rollback: revert the offending commit on main and let this workflow redeploy.
-# Every image is tagged with its commit SHA, so the audit trail of what ran when
-# is the git history.
+# Rollback: revert the commit on main; this workflow redeploys it.
 
 on:
   workflow_dispatch:
@@ -40,14 +29,9 @@ permissions:
   contents: read
 
 jobs:
-  # A deploy certifies exactly what it ships: the same gate CI runs on PRs runs
-  # here, in front of the roll, whatever the trigger (push or manual dispatch).
-  #
-  # Skip until the infrastructure exists. AWS_DEPLOY_ROLE_ARN is a Terraform output,
-  # set as a repo variable after the first `terraform apply`. Until then there is
-  # nothing to deploy to, so the run is a clean no-op rather than failing on missing
-  # credentials. It activates automatically once the variable is set; skipping the
-  # gate also skips the dependent deploy job.
+  # Same gate as CI — a deploy certifies the exact commit it ships, on any trigger.
+  # Skipped (along with the dependent deploy) until the first terraform apply sets
+  # AWS_DEPLOY_ROLE_ARN, so pre-infrastructure pushes no-op instead of failing.
   gate:
     if: ${{ vars.AWS_DEPLOY_ROLE_ARN != '' }}
     uses: ./.github/workflows/gate.yml
@@ -55,7 +39,7 @@ jobs:
   deploy:
     needs: gate
     runs-on: ubuntu-latest
-    timeout-minutes: 30 # emulated arm64 builds are slow, but not six-hours slow
+    timeout-minutes: 30 # emulated arm64 builds are slow
     environment: production
     permissions:
       id-token: write # mint the OIDC token
@@ -72,9 +56,8 @@ jobs:
       - name: Log in to Amazon ECR
         uses: aws-actions/amazon-ecr-login@fa648b43de3d4d023bcb3f89ed6940096949c419 # v2.1.5
 
-      # ECR tags are immutable and Docker builds are not byte-reproducible, so
-      # rebuilding an already-pushed commit would be rejected at push time. Skip
-      # the build instead: re-runs after a failed roll deploy the existing image.
+      # Tags are immutable and builds aren't reproducible — re-pushing a commit would
+      # be rejected, so skip the build and roll the existing image instead.
       - name: Check for an existing image for this commit
         id: image
         env:
@@ -109,8 +92,7 @@ jobs:
           push: true
           tags: ${{ vars.ECR_REPOSITORY }}:${{ github.sha }}
 
-      # No --publish: the scheduler invokes $LATEST, so numbered versions would be
-      # dead weight nothing references.
+      # No --publish: the scheduler invokes $LATEST; versions would be dead weight.
       - name: Roll the Lambda to the new image
         env:
           FUNCTION_NAME: ${{ vars.LAMBDA_FUNCTION }}
@@ -120,9 +102,8 @@ jobs:
             --function-name "$FUNCTION_NAME" \
             --image-uri "$IMAGE_URI"
 
-      # update-function-code is asynchronous: it returns while the rollout is still
-      # InProgress, and the update can fail after that. The deploy is not done until
-      # the function is confirmed to be running the new image.
+      # update-function-code is async and can fail after returning — the deploy is
+      # not done until the rollout reports Successful.
       - name: Verify the rollout
         env:
           FUNCTION_NAME: ${{ vars.LAMBDA_FUNCTION }}

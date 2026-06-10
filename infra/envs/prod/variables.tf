@@ -33,7 +33,7 @@ variable "image_tag" {
 }
 
 variable "lambda_timeout_seconds" {
-  description = "Batch Lambda timeout (s). Must exceed worst-case LLM time — primary + fallback each exhausting llm.timeout_seconds in production.yaml — plus fetch/render/delivery overhead."
+  description = "Batch Lambda timeout (s). Must outlive primary + fallback both exhausting llm.timeout_seconds, plus pipeline overhead."
   type        = number
   default     = 360
 }

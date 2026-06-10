@@ -28,9 +28,8 @@ resource "aws_lambda_function" "batch" {
     variables = var.environment_variables
   }
 
-  # The deploy pipeline rolls the function to each new image (update-function-code);
-  # Terraform owns the function's configuration, not its code. Without this, every
-  # apply would revert the image to the bootstrap tag in tfvars.
+  # The pipeline owns code rollouts; without this, every apply would revert the
+  # image to the tfvars tag.
   lifecycle {
     ignore_changes = [image_uri]
   }
