@@ -1,8 +1,9 @@
 # Remote-state backend for the prod root module.
 #
-# Chicken-and-egg: the bucket + lock table that hold Terraform state must exist
+# Chicken-and-egg: the bucket that holds Terraform state must exist
 # before any config can use `backend "s3"`. This root is therefore applied ONCE with
 # local state (no backend block), creating the backend that envs/prod then points at.
+# Locking is S3-native (`use_lockfile` in the prod backend config) — no lock table.
 # It is small and rarely changes; keep its own state file (terraform.tfstate) in the repo
 # working copy or a safe location — it only describes the backend itself.
 
@@ -59,20 +60,4 @@ resource "aws_s3_bucket_policy" "state" {
       }
     }]
   })
-}
-
-# State locking. PAY_PER_REQUEST: negligible cost for the handful of locks a year.
-resource "aws_dynamodb_table" "locks" {
-  name         = var.lock_table_name
-  billing_mode = "PAY_PER_REQUEST"
-  hash_key     = "LockID"
-
-  attribute {
-    name = "LockID"
-    type = "S"
-  }
-
-  lifecycle {
-    prevent_destroy = true
-  }
 }

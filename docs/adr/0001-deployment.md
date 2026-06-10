@@ -46,7 +46,7 @@ Constraints carried in from the codebase:
 | Secrets | **Secrets Manager** (or SSM Parameter Store SecureString) + **KMS** |
 | Networking | **No VPC, no NAT** — Lambda uses managed internet egress |
 | Observability | **CloudWatch Logs** (JSON) + **CloudWatch Alarms** → **SNS** |
-| IaC | **Terraform** (remote state in S3 + DynamoDB lock) |
+| IaC | **Terraform** (remote state in S3, S3-native lockfile) |
 | CI/CD | **GitHub Actions** via **OIDC** (no long-lived AWS keys) |
 
 Estimated cost: **~$3–5/month + LLM usage** (≈$1/month of Anthropic calls).
@@ -204,7 +204,8 @@ introduced, which this design deliberately avoids.)
 
 ### 4.9 IaC & CI/CD
 
-- **Terraform** with remote state in **S3** and locking in **DynamoDB**. Separate
+- **Terraform** with remote state in **S3**, locked via the S3-native lockfile
+  (`use_lockfile`; originally a DynamoDB table, migrated post-launch). Separate
   state per environment (`dev`, `prod`) via directories or workspaces.
 - **GitHub Actions** authenticates to AWS with **OIDC** (a short-lived assumed role —
   no stored AWS keys). Pipeline: run the existing gate (ruff, mypy, pyright, pytest,
@@ -281,7 +282,7 @@ infra/
     └── prod/
 ```
 
-- **Remote state:** S3 bucket (versioned, encrypted) + DynamoDB lock table.
+- **Remote state:** S3 bucket (versioned, encrypted) with S3-native lockfile locking.
 - **Roles (least privilege):**
   - *Batch role* — `s3:PutObject`/`GetObject`/`ListBucket` on the audit bucket;
     `secretsmanager:GetSecretValue` (its secrets); `ses:SendEmail`; `kms:Decrypt`;

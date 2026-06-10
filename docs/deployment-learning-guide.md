@@ -289,14 +289,16 @@ module "audit_s3" {                     # call the child module
 ### Remote state and locking (and the chicken-and-egg)
 
 By default the state file is local (`terraform.tfstate`). For real projects you store it
-**remotely** so a team shares one source of truth and so it survives your laptop. The standard AWS
-pattern is **state in an S3 bucket + a DynamoDB table for locking** (the lock stops two people
-applying at once and corrupting state).
+**remotely** so a team shares one source of truth and so it survives your laptop. The pattern here
+is **state in an S3 bucket, locked with the S3-native lockfile** (`use_lockfile = true`; the lock
+stops two people applying at once and corrupting state). Older guides pair the bucket with a
+DynamoDB lock table — that was required before Terraform 1.10, and is deprecated now that S3
+conditional writes let the bucket lock itself.
 
 **The chicken-and-egg:** the bucket that *holds* state must exist *before* you can use it as the
 backend. So we have a tiny separate config — [`infra/bootstrap/`](../infra/bootstrap) — applied
-**once with local state**, whose only job is to create the state bucket + lock table. After that, the
-main config (`envs/prod`) uses `backend "s3"` pointing at them. You'll see this pattern on every
+**once with local state**, whose only job is to create the state bucket. After that, the
+main config (`envs/prod`) uses `backend "s3"` pointing at it. You'll see this pattern on every
 serious Terraform project.
 
 ### Terraform vs the alternatives (so you can speak to it)
@@ -463,8 +465,8 @@ This **module = inputs + resources + outputs** shape is the single most useful T
 
 ### `bootstrap/` — the state backend
 
-Creates the S3 state bucket (versioned, encrypted, public-access-blocked, TLS-only) and the DynamoDB
-lock table. Has `prevent_destroy = true` so you can't accidentally delete the thing holding all your
+Creates the S3 state bucket (versioned, encrypted, public-access-blocked, TLS-only). Has
+`prevent_destroy = true` so you can't accidentally delete the thing holding all your
 state. Applied **once**, with local state, before anything else. ([infra/bootstrap/main.tf](../infra/bootstrap/main.tf))
 
 ### `modules/kms` — the encryption key

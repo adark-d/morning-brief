@@ -12,7 +12,7 @@ Phase 1 ships the **scheduled brief** (batch only); the HTTP API is deferred to 
 
 ```
 infra/
-├── bootstrap/        # remote-state backend (S3 + DynamoDB lock) — applied once, local state
+├── bootstrap/        # remote-state backend (S3, native lockfile) — applied once, local state
 ├── modules/          # kms · ecr · audit_s3 · secrets · iam · batch_lambda · observability · cicd
 └── envs/prod/        # the production root: wires the modules, backend "s3"
 ```
@@ -113,12 +113,12 @@ The image is built from the repo-root `Dockerfile`. Merge the Dockerfile change 
    terraform init
    terraform apply -var state_bucket_name=morning-brief-tf-state-<unique>
    ```
-   Note the `state_bucket` and `lock_table` outputs.
+   Note the `state_bucket` output.
 
 2. **Point the prod root at that backend:**
    ```bash
    cd ../envs/prod
-   cp backend.hcl.example backend.hcl        # fill in the bucket/table from step 1
+   cp backend.hcl.example backend.hcl        # fill in the bucket from step 1
    cp terraform.tfvars.example terraform.tfvars  # fill in audit_bucket_name, smtp_from, alert_email, github_*
    terraform init -backend-config=backend.hcl
    ```

@@ -188,9 +188,10 @@ terraform apply -var state_bucket_name=morning-brief-tf-state-<ACCOUNT_ID>
 ```
 
 Bucket names are globally unique across AWS — suffixing the account ID is the
-standard trick. Expect a short plan (state bucket + DynamoDB lock table); type `yes`.
+standard trick. Expect a short plan (the state bucket and its settings); type `yes`.
+State locking is S3-native (`use_lockfile` in `backend.hcl`) — no lock table.
 
-**Verify:** the apply prints `state_bucket` and `lock_table` outputs.
+**Verify:** the apply prints the `state_bucket` output.
 
 ### 3.2 Configure the prod environment
 
@@ -455,8 +456,9 @@ After a few scheduled runs (07:00 Europe/London, weekdays) have succeeded:
 2. **Dependabot PRs**: arrive weekly, grouped, bumping the SHA-pinned actions.
    The gate exercises `checkout`/`setup-uv` directly; the AWS/Docker actions are only
    proven on the next real deploy — merge while diffs are small.
-3. Known cosmetic debt: Terraform warns the S3 backend's `dynamodb_table` parameter
-   is deprecated in favour of `use_lockfile` — migrate when convenient.
+3. **Lock-table migration** (done): the backend originally locked state via a
+   DynamoDB table (`dynamodb_table`, deprecated); it now uses the S3-native
+   lockfile (`use_lockfile = true`) and the table is destroyed.
 
 ## Phase 11 — Teardown (GOVERNANCE mode only)
 
