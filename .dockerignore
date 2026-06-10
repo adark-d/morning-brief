@@ -18,6 +18,9 @@ __pycache__/
 # Tests are not shipped in the runtime image
 tests/
 
+# Not part of the image; keeps .terraform/ binaries and local tfvars out of the context
+infra/
+
 # Secrets and local environment (never in an image)
 .env
 .env.*
@@ -31,19 +34,16 @@ audit/
 htmlcov/
 coverage.xml
 
-# Docs and local notes not needed to build (the architecture doc and handover
-# notes carry firm/stakeholder names and must never enter the image)
+# Docs are not needed to build; the architecture doc (*.docx) carries
+# firm/stakeholder names and must never enter the image
 docs/
 *.docx
-HANDOVER.md
 SECURITY.md
-CLAUDE.md
 
 # Container build files themselves
 Dockerfile
 .dockerignore
 
 # Editor / OS / tooling noise
-.claude/
 .DS_Store
 .python-version

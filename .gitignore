@@ -21,10 +21,6 @@ wheels/
 *.key
 *.pem
 
-# Claude Code local cache (CLAUDE.md itself IS tracked)
-.claude/
-CLAUDE.md
-
 # Audit records — runtime artefacts, never tracked
 audit/
 *.audit.json
@@ -34,6 +30,5 @@ audit/
 htmlcov/
 coverage.xml
 
-# Architecture doc + handover notes — contain firm/stakeholder names, never tracked
+# Architecture doc — contains firm/stakeholder names, never tracked
 *.docx
-HANDOVER.md
