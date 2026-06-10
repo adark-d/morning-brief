@@ -1,5 +1,6 @@
 terraform {
-  required_version = ">= 1.9"
+  # 1.10+ for S3-native state locking (use_lockfile).
+  required_version = ">= 1.10"
 
   required_providers {
     aws = {
@@ -8,7 +9,7 @@ terraform {
     }
   }
 
-  # Partial backend: supply bucket/key/region/dynamodb_table at init time, e.g.
+  # Partial backend: supply bucket/key/region/use_lockfile at init time, e.g.
   #   terraform init -backend-config=backend.hcl
   # (see backend.hcl.example). The state backend itself is created by infra/bootstrap.
   backend "s3" {}
