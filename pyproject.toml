@@ -9,9 +9,9 @@ authors = [
 requires-python = ">=3.13"
 dependencies = [
     "aiosmtplib>=5.1.1",
-    "anthropic>=0.109.1",
-    "boto3>=1.43.26",
-    "fastapi>=0.136.3",
+    "anthropic>=0.109.2",
+    "boto3>=1.43.30",
+    "fastapi>=0.137.1",
     "httpx>=0.28.1",
     "jinja2>=3.1.6",
     "mangum>=0.19.0",
@@ -29,20 +29,20 @@ dependencies = [
 morning-brief = "morning_brief.cli:main"
 
 [build-system]
-requires = ["uv_build>=0.11.19,<0.12.0"]
+requires = ["uv_build>=0.11.21,<0.12.0"]
 build-backend = "uv_build"
 
 [dependency-groups]
 dev = [
-    "boto3-stubs[s3,ssm]>=1.43.26",
+    "boto3-stubs[s3,ssm]>=1.43.30",
     "moto[s3]>=5.2.2",
     "mypy>=2.1.0",
     "pyright>=1.1.410",
-    "pytest>=9.0.3",
+    "pytest>=9.1.0",
     "pytest-asyncio>=1.4.0",
     "pytest-cov>=7.1.0",
     "pytest-mock>=3.15.1",
-    "ruff>=0.15.16",
+    "ruff>=0.15.17",
     "types-pyyaml>=6.0.12.20260518",
 ]
 
