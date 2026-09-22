@@ -200,9 +200,20 @@ Variables**. Choose **New repository variable** for each entry below:
 | `ECR_REPOSITORY` | Terraform output `ecr_repository_url`, including the registry hostname. |
 | `LAMBDA_FUNCTION` | Terraform output `batch_function_name`. |
 
-The AWS role trusts the repository's `main` branch directly. No GitHub environment
-or stored AWS access key is needed. Protect `main` with pull requests and required
-CI checks before allowing automated deployments.
+In **Settings → Environments**, create an environment named `production`. Under
+**Deployment branches and tags**, choose **Selected branches and tags** and add
+a branch rule for `main`. Do not add a tag rule. The deployment workflow uses this
+environment so GitHub records deployment history and status.
+
+The AWS role trusts this repository's `production` environment. Its branch rule
+restricts deployment credentials to `main`; keep that rule in place. No stored AWS
+access key is needed. Protect `main` with pull requests and required CI checks.
+
+When migrating from branch-based OIDC trust, create the restricted environment
+first. Temporarily allow both the existing `ref:refs/heads/main` subject and the
+new `environment:production` subject in the deployment role. Publish the workflow
+change, verify a successful production deployment, then apply Terraform to remove
+the old branch subject. This keeps authentication working during the transition.
 
 **Check:** all four repository variables are present and the updated Terraform
 OIDC trust policy has been applied before running the deployment workflow.
