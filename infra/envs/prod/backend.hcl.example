@@ -1,7 +1,0 @@
-# Copy to backend.hcl and fill in the values output by `infra/bootstrap`.
-# Then: terraform init -backend-config=backend.hcl
-bucket         = "morning-brief-tf-state-CHANGEME"
-key            = "prod/terraform.tfstate"
-region         = "eu-west-2"
-use_lockfile   = true
-encrypt        = true

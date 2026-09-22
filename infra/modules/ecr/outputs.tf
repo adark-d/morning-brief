@@ -7,8 +7,3 @@ output "repository_arn" {
   description = "Repository ARN (for scoping the CI deploy role's ECR push permission)."
   value       = aws_ecr_repository.this.arn
 }
-
-output "repository_name" {
-  description = "Repository name."
-  value       = aws_ecr_repository.this.name
-}

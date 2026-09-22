@@ -1,0 +1,33 @@
+# Non-secret settings only. Set recipients and credentials in SSM.
+image_tag = "CHANGEME"
+sender    = "briefs@example.com"
+smtp_host = "smtp.example.com"
+
+selection_model   = "claude-haiku-4-5"
+explanation_model = "claude-sonnet-4-5-20250929"
+
+# Enable only when the deployed image and SSM values are ready.
+schedule_enabled    = false
+schedule_expression = "cron(0 7 ? * MON-FRI *)"
+schedule_timezone   = "Europe/London"
+missed_run_hours     = 74
+completion_check_schedule = "cron(0 8 ? * MON-FRI *)"
+completion_check_lookback_minutes = 120
+
+pipeline_timeout_seconds = 420
+lambda_timeout_seconds   = 480
+
+# Omitted fields use src/brief_core/settings.py defaults.
+brief_settings = {
+  topic_count  = 5
+  source_names = ["tldr"]
+  interests    = "Applied AI engineering, agents, evaluation, and useful research"
+  smtp_port    = 587
+}
+
+alert_email      = "alerts@example.com"
+
+github_owner = "CHANGEME"
+github_repo  = "morning-brief"
+# create_oidc_provider       = false
+# existing_oidc_provider_arn = "arn:aws:iam::ACCOUNT:oidc-provider/token.actions.githubusercontent.com"

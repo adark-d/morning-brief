@@ -1,10 +1,4 @@
-# Least-privilege IAM for the batch path. Two roles:
-#   - the Lambda execution role (what the function can do at runtime)
-#   - the EventBridge Scheduler role (what the scheduler can do to invoke the function)
-#
-# Policies reference foundation ARNs directly (bucket, key) and construct the
-# Lambda/DLQ/log-group ARNs from their names, so this module depends only on name
-# strings from the root — never on the batch_lambda module, avoiding a dependency cycle.
+# Separate roles limit Lambda runtime access and Scheduler invocation permissions.
 
 data "aws_caller_identity" "current" {}
 data "aws_region" "current" {}
@@ -18,7 +12,7 @@ locals {
   ssm_params_arn = "arn:aws:ssm:${local.region}:${local.account_id}:parameter${var.ssm_path}/*"
 }
 
-# ---- Batch Lambda execution role ----
+# Lambda execution permissions.
 
 data "aws_iam_policy_document" "lambda_assume" {
   statement {
@@ -34,11 +28,17 @@ data "aws_iam_policy_document" "lambda_assume" {
 resource "aws_iam_role" "batch" {
   name               = "${var.name_prefix}-batch"
   assume_role_policy = data.aws_iam_policy_document.lambda_assume.json
-  tags               = var.tags
 }
 
 data "aws_iam_policy_document" "batch" {
-  # CloudWatch Logs — only the function's own pre-created log group.
+  # CloudWatch metric reads do not support resource-level permissions.
+  statement {
+    sid       = "CheckCompletion"
+    effect    = "Allow"
+    actions   = ["cloudwatch:GetMetricStatistics"]
+    resources = ["*"]
+  }
+
   statement {
     sid       = "Logs"
     effect    = "Allow"
@@ -46,34 +46,30 @@ data "aws_iam_policy_document" "batch" {
     resources = ["${local.log_group_arn}:*"]
   }
 
-  # Audit store — write + read + list, never delete (the store is append-only; Object
-  # Lock would block deletion anyway, but least-privilege omits the permission).
-  statement {
-    sid       = "AuditObjects"
-    effect    = "Allow"
-    actions   = ["s3:PutObject", "s3:GetObject"]
-    resources = ["${var.audit_bucket_arn}/${var.audit_prefix}/*"]
-  }
-  statement {
-    sid       = "AuditList"
-    effect    = "Allow"
-    actions   = ["s3:ListBucket"] # list_objects_v2 + head_bucket
-    resources = [var.audit_bucket_arn]
-  }
-
-  # KMS — GenerateDataKey* for SSE-KMS writes; Decrypt for reads + SSM SecureString.
+  # Allow key decryption only through SSM.
   statement {
     sid       = "Kms"
     effect    = "Allow"
-    actions   = ["kms:GenerateDataKey", "kms:GenerateDataKeyWithoutPlaintext", "kms:Decrypt"]
+    actions   = ["kms:Decrypt"]
     resources = [var.kms_key_arn]
+    condition {
+      test     = "StringEquals"
+      variable = "kms:ViaService"
+      values   = ["ssm.${local.region}.amazonaws.com"]
+    }
   }
 
-  # Secrets — read the SecureString parameters under the env path at cold start.
+  statement {
+    sid       = "FailedInvocations"
+    effect    = "Allow"
+    actions   = ["sqs:SendMessage"]
+    resources = [local.dlq_arn]
+  }
+
   statement {
     sid       = "SsmSecrets"
     effect    = "Allow"
-    actions   = ["ssm:GetParametersByPath", "ssm:GetParameters", "ssm:GetParameter"]
+    actions   = ["ssm:GetParametersByPath"]
     resources = [local.ssm_params_arn]
   }
 }
@@ -84,7 +80,7 @@ resource "aws_iam_role_policy" "batch" {
   policy = data.aws_iam_policy_document.batch.json
 }
 
-# ---- EventBridge Scheduler role ----
+# Scheduler invocation permissions.
 
 data "aws_iam_policy_document" "scheduler_assume" {
   statement {
@@ -94,7 +90,7 @@ data "aws_iam_policy_document" "scheduler_assume" {
       type        = "Service"
       identifiers = ["scheduler.amazonaws.com"]
     }
-    # Scope the trust to this account to prevent the confused-deputy problem.
+    # Only this account may use the Scheduler role.
     condition {
       test     = "StringEquals"
       variable = "aws:SourceAccount"
@@ -106,7 +102,6 @@ data "aws_iam_policy_document" "scheduler_assume" {
 resource "aws_iam_role" "scheduler" {
   name               = "${var.name_prefix}-scheduler"
   assume_role_policy = data.aws_iam_policy_document.scheduler_assume.json
-  tags               = var.tags
 }
 
 data "aws_iam_policy_document" "scheduler" {

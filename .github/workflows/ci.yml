@@ -1,12 +1,12 @@
 name: CI
 
-# Runs the shared quality gate (gate.yml) on every PR and every push to main.
-# The deploy workflow calls the same gate in front of each roll.
-
 on:
-  push:
-    branches: [main]
   pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: read

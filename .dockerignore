@@ -1,13 +1,7 @@
-# Build context is intentionally narrow: the Dockerfile needs only pyproject.toml,
-# uv.lock, README.md, src/, and config/. Everything else is excluded to keep the
-# context small and to guarantee no secrets or local artefacts reach the image.
-
-# Version control and CI
 .git
 .gitignore
 .github
 
-# Virtual environments and caches
 .venv
 __pycache__/
 *.py[cod]
@@ -15,35 +9,28 @@ __pycache__/
 .pytest_cache/
 .ruff_cache/
 
-# Tests are not shipped in the runtime image
 tests/
 
-# Not part of the image; keeps .terraform/ binaries and local tfvars out of the context
 infra/
 
-# Secrets and local environment (never in an image)
 .env
 .env.*
 *.key
 *.pem
 
-# Runtime artefacts
 audit/
 *.audit.json
 .coverage
 htmlcov/
 coverage.xml
 
-# Docs are not needed to build; the architecture doc (*.docx) carries
-# firm/stakeholder names and must never enter the image
-docs/
 *.docx
 SECURITY.md
 
-# Container build files themselves
 Dockerfile
 .dockerignore
 
-# Editor / OS / tooling noise
 .DS_Store
 .python-version
+
+config/
