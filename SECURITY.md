@@ -1,31 +1,37 @@
 # Security policy
 
-## Reporting a vulnerability
+## Report a vulnerability
 
-Please report suspected vulnerabilities **privately** via GitHub:
-**Security tab → "Report a vulnerability"** (private vulnerability reporting is
-enabled on this repository). Do not open a public issue for security findings.
+Use [GitHub's private vulnerability reporting](https://github.com/adark-d/morning-brief/security/advisories/new).
+Do not post security findings in public issues or pull requests.
 
-You can expect an acknowledgement within a few days. This is a solo-maintained
-project; fixes for confirmed issues are prioritised ahead of all other work.
+Include:
+
+- The affected file, component, or commit.
+- Steps to reproduce the issue and its possible impact.
+- Relevant logs or screenshots, with credentials and personal information removed.
+
+This is a personal project, so response times may vary. Follow-up questions and
+updates will stay in the private report.
 
 ## Scope
 
-In scope: the application code (`src/`), the GitHub Actions workflows
-(`.github/workflows/`), and the Terraform under `infra/`.
+Reports can cover:
 
-Out of scope: vulnerabilities in third-party dependencies with no exploitable
-path through this codebase (these are tracked via `pip-audit` in CI and
-Dependabot), and issues requiring privileged access to the deployment's AWS
-account.
+| Area | Location |
+|---|---|
+| Application and shared utilities | `src/` |
+| Manual commands | `scripts/` |
+| Configuration templates | `config/` |
+| Packaging and container builds | `pyproject.toml`, `uv.lock`, `Dockerfile` |
+| CI and deployment workflows | `.github/workflows/` |
+| AWS resources and permissions | `infra/` |
+
+Dependency vulnerabilities are relevant when they affect this project's use of the
+dependency. Include issues in the project's AWS permissions or configuration, even
+if exploiting them requires some existing access.
 
 ## Supported versions
 
-The `main` branch and the currently deployed image (always built from `main`)
-are the only supported versions. There are no maintained release lines.
-
-## Security posture
-
-For how the system handles secrets, authentication, data at rest, and the
-controls the deployment provides, see the security design document:
-[docs/security.md](docs/security.md).
+Security fixes target the latest code on `main`. Older commits and deployed images
+are not maintained separately. Rebuild and redeploy to receive fixes.

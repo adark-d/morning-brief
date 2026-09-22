@@ -1,241 +1,135 @@
-<div align="center">
+<h1 align="center">Morning Brief</h1>
 
-# Morning Brief
+<p align="center">
+  <a href="https://github.com/adark-d/morning-brief/actions/workflows/ci.yml"><img src="https://github.com/adark-d/morning-brief/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
+  <a href="pyproject.toml"><img src="https://img.shields.io/badge/Python-3.13%2B-3776AB?logo=python&amp;logoColor=white" alt="Python 3.13+"></a>
+  <a href="https://github.com/astral-sh/uv"><img src="https://img.shields.io/badge/Package_manager-uv-6E56CF" alt="uv"></a>
+  <a href="https://aws.amazon.com/lambda/"><img src="https://img.shields.io/badge/AWS-Lambda-FF9900" alt="AWS Lambda"></a>
+  <a href="https://ai.pydantic.dev/"><img src="https://img.shields.io/badge/Pydantic-AI-E92063" alt="Pydantic AI"></a>
+</p>
 
-**A production-grade LLM pipeline that compresses ~60 minutes of pre-market
-context-assembly into a 3-minute briefing for fixed-income desks.**
+An AI news email that helps you learn something useful from the headlines.
+Morning Brief selects up to five relevant stories and explains the concepts behind
+them, with practical examples and links to the original sources.
 
-[![CI](https://github.com/adark-d/morning-brief/actions/workflows/ci.yml/badge.svg)](https://github.com/adark-d/morning-brief/actions/workflows/ci.yml)
-[![Deploy](https://github.com/adark-d/morning-brief/actions/workflows/deploy.yml/badge.svg)](https://github.com/adark-d/morning-brief/actions/workflows/deploy.yml)
-[![Python 3.13](https://img.shields.io/badge/python-3.13-3776AB?logo=python&logoColor=white)](https://www.python.org/)
-[![uv](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/uv/main/assets/badge/v0.json)](https://github.com/astral-sh/uv)
-[![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
-[![Types: mypy + pyright strict](https://img.shields.io/badge/types-mypy%20%2B%20pyright%20strict-blue)](pyproject.toml)
-[![Deployed on AWS Lambda](https://img.shields.io/badge/deployed-AWS%20Lambda-FF9900?logo=awslambda&logoColor=white)](docs/deployment-runbook.md)
-[![IaC: Terraform](https://img.shields.io/badge/IaC-Terraform-844FBA?logo=terraform&logoColor=white)](infra/)
+## What you receive
 
-</div>
+Each topic includes:
 
-On a schedule it fetches market data, validates it, asks an LLM for a structured
-analysis, verifies that analysis, renders and delivers it by email, and writes an
-immutable audit record of the whole run. It is intentionally generic — any data
-provider, any LLM backend, any delivery channel can be swapped in behind an
-interface — and opinionated about the production concerns most demos skip.
+- **What happened** and why it matters.
+- **A concept explained** in plain language.
+- **A practical example** and a takeaway.
+- **Source links**, with a note when only the newsletter summary was available.
 
-A full walkthrough of the design lives in [docs/architecture.md](docs/architecture.md).
+Your interests guide the selection. If no stories qualify, the run finishes
+without sending an email.
 
-## Key properties
+## How it works
 
-- **Three-tier guardrails** — input validation before the LLM, output verification
-  after, and recipient checks before delivery.
-- **Versioned prompts** — prompts are YAML, not strings in code; roll one back
-  without redeploying.
-- **Pluggable interfaces** — data providers, LLM backends, delivery channels, and
-  storage are dependency-injected; swap any one without touching business logic.
-- **Immutable audit trail** — every run, delivery attempt, and error is recorded
-  for compliance.
-- **Graceful degradation** — a partial brief with a warning beats no brief with no
-  notice; the system reports its own health.
-- **Observable by design** — structured logging plus per-stage and per-provider
-  latency and cost on every run.
+```text
+Fetch news → select topics → read articles → explain → validate → email
+```
 
-## Tech stack
+TLDR AI is the current news source. Pydantic AI calls Anthropic directly to produce
+structured selections and lessons.
+The application checks story references and lesson completeness before rendering
+the email. The prompt asks for concise explanations based on the supplied sources.
 
-| Layer | Choice |
+Run it manually from your terminal or schedule it on AWS Lambda. The default AWS
+schedule is **weekdays at 07:00, Europe/London**.
+
+## Run locally
+
+You need Python 3.13+, [uv](https://github.com/astral-sh/uv), and an Anthropic API key.
+SMTP credentials are needed only when sending email.
+
+### 1. Install and configure
+
+From the repository root:
+
+```bash
+uv sync --frozen
+cp config/.env.example config/.env
+```
+
+Copy the template only if you do not already have `config/.env`. Set your API key
+and the Claude models used for each task:
+
+```dotenv
+MORNING_BRIEF_ANTHROPIC_API_KEY=your-key
+MORNING_BRIEF_SELECTION_MODEL=claude-haiku-4-5
+MORNING_BRIEF_EXPLANATION_MODEL=claude-sonnet-4-5-20250929
+```
+
+Haiku selects topics and Sonnet writes the explanations. These names are configurable;
+both tasks call Anthropic directly. Keep real credentials out of Git.
+
+If `ANTHROPIC_API_KEY` is already exported in your environment, you can leave the
+key out of `config/.env`. Environment values take precedence over the file.
+
+### 2. Preview the brief
+
+```bash
+uv run brief
+```
+
+This fetches live news, calls the models, and prints the email HTML to your terminal.
+Logs go to stderr, so `uv run brief > brief.html` saves a clean preview.
+It does not send email. Model calls may incur usage charges.
+
+### 3. Send by email
+
+Set the sender, recipients, SMTP host, and credentials in `config/.env`, then run:
+
+```bash
+uv run brief --send
+```
+
+Use [`config/.env.example`](config/.env.example) for available settings, including
+interests, topic count, model budgets, and timeouts. Environment variables override
+values in the file. On Lambda, SSM supplies fresh values on each invocation;
+explicit environment values take precedence. Omitted settings use the defaults in
+[`settings.py`](src/brief_core/settings.py).
+
+## Project layout
+
+| Location | Purpose |
 |---|---|
-| Language | Python 3.13 |
-| Validation | Pydantic v2 |
-| Config | Pydantic Settings (YAML + env) |
-| LLM | Anthropic Claude (default), pluggable via interface |
-| API | FastAPI (Mangum adapter for Lambda) |
-| HTTP | httpx (async) |
-| Templating | Jinja2 |
-| Logging | structlog |
-| Retries | tenacity |
-| Testing | pytest |
-| Tooling | uv, ruff, mypy + pyright (strict), pip-audit |
-| Runtime | AWS Lambda (arm64 container image), EventBridge Scheduler |
-| Storage | S3 with Object Lock (WORM audit store), SSM Parameter Store (secrets) |
-| Email | Resend (SMTP) |
-| Observability | CloudWatch alarms → SNS (run-failed, retries-exhausted, missed-run) |
-| Infrastructure | Terraform (modular, remote state), Docker, ECR, KMS |
-| CI/CD | GitHub Actions — shared quality gate, OIDC deploys (no stored keys), SHA-pinned actions + Dependabot |
+| `src/ai_brief/` | News sources, prompts, analysis, validation, email template, and pipeline. |
+| `src/brief_core/` | Shared settings, HTTP, model routing, SMTP, logging, and AWS utilities. |
+| `scripts/run_ai_brief.py` | Command-line entry point for manual runs. |
+| `config/` | Local settings and their example template. |
+| `infra/` | Terraform configuration and AWS deployment instructions. |
+| `tests/` | Brief behaviour and workflow tests using mocked external services. |
 
-## Prerequisites
+## Deploy to AWS
 
-- **Python 3.13**
-- **[uv](https://docs.astral.sh/uv/)** — the project and dependency manager
+EventBridge Scheduler invokes Lambda. SSM supplies credentials, CloudWatch records
+logs, and email alerts report failed or missed runs. A weekday check at 08:00
+looks for a healthy completion within the previous two hours. GitHub Actions deploys image
+updates; Terraform manages infrastructure separately.
 
-## Setup
+Start with the [infrastructure overview](infra/README.md), then follow the
+[setup guide](infra/SETUP.md). Scheduling stays disabled until explicitly enabled.
 
-### 1. Install dependencies
+## Development
+
+The committed tests focus on story parsing, lesson rules, email content, and pipeline
+outcomes. Use temporary regression checks for plumbing changes rather than adding
+permanent tests for every configuration or SDK wrapper.
 
 ```bash
-uv sync
+uv run ruff check src/ scripts/ tests/
+uv run ruff format src/ scripts/ tests/ --check
+uv run mypy src/ scripts/ tests/
+uv run pyright
+uv run pytest
 ```
 
-### 2. Try it immediately (no secrets needed)
+## Limits to keep in mind
 
-The `test` environment wires every external dependency to a mock — no API key, no
-network, no real email. This is the fastest way to confirm everything works:
-
-```bash
-MORNING_BRIEF_ENVIRONMENT=test \
-MORNING_BRIEF_DELIVERY__EMAIL__RECIPIENTS='["you@example.com"]' \
-uv run morning-brief run
-```
-
-You should see the pipeline run end-to-end and write an audit record under
-`audit/test/`. To run for real (live market data, a real LLM call, real email),
-configure secrets below.
-
-### 3. Configure secrets (`.env`) — local runs only
-
-Secrets and recipient lists come **only** from environment variables — never from
-YAML or code. Locally they load from a gitignored `.env`; in production there is
-no `.env` — secrets live in SSM Parameter Store and load at Lambda start (see the
-[deployment runbook](docs/deployment-runbook.md)).
-
-```bash
-cp .env.example .env
-```
-
-[`.env.example`](.env.example) documents every variable inline: names follow
-`MORNING_BRIEF_<SECTION>__<FIELD>` (double underscore), values are plain text with
-no quotes. The API is fail-closed — without `MORNING_BRIEF_API__AUTH_TOKEN` set,
-protected endpoints return `503`.
-
-## Configuration & environments
-
-Non-secret configuration is layered YAML, highest precedence first:
-
-```
-env vars  >  .env  >  config/environments/<env>.yaml  >  config/default.yaml  >  defaults
-```
-
-`MORNING_BRIEF_ENVIRONMENT` selects which environment file loads on top of
-`config/default.yaml`:
-
-| Environment | Data | LLM | Delivery | Logs | Use for |
-|---|---|---|---|---|---|
-| `development` | live (yfinance) | `claude-haiku` | real (uses your `.env`) | console (readable) | local iteration |
-| `test` | mock | mock | mock | console | offline, free, no secrets |
-| `production` | live (yfinance) | `claude-opus` | real | JSON (for aggregators) | deployment |
-
-You can override any single value with its env var, e.g. read human-readable logs
-while in production:
-
-```bash
-MORNING_BRIEF_OBSERVABILITY__JSON_LOGS=false uv run morning-brief serve
-```
-
-## Running
-
-### Run one brief (CLI)
-
-```bash
-uv run morning-brief run
-```
-
-Runs the full pipeline once and exits. The run is always persisted to the audit
-store; a failed brief is recorded as data (`status="failed"`), not a crash. This is
-the unit a scheduler invokes.
-
-### Serve the HTTP API
-
-```bash
-uv run morning-brief serve --host 127.0.0.1 --port 8000
-```
-
-Every endpoint, schema, and error shape is documented in the generated **Swagger UI
-at http://127.0.0.1:8000/docs** — explore and call the API from there (the
-**Authorize** button takes the bearer token). All `/briefs` endpoints require
-`Authorization: Bearer <token>`, the value of `MORNING_BRIEF_API__AUTH_TOKEN`.
-
-### Run as a container (AWS Lambda image)
-
-The production image (`Dockerfile`) targets AWS Lambda and serves both entry points
-from one artifact — the scheduled brief (`run_handler`, the default `CMD`) and the
-HTTP API (`api_handler`). Invoke a handler locally through the Lambda Runtime
-Interface Emulator (RIE), which ships inside the base image; `MORNING_BRIEF_ENVIRONMENT=test`
-keeps the run fully offline (mock data, LLM, and delivery; JSON audit store):
-
-```bash
-docker build -t morning-brief:local .
-
-# Scheduled brief (default CMD = run_handler)
-docker run --rm -p 9000:8080 \
-  -e MORNING_BRIEF_ENVIRONMENT=test \
-  -e MORNING_BRIEF_DELIVERY__EMAIL__RECIPIENTS='["desk@example.com"]' \
-  morning-brief:local
-# then, in another shell:
-curl -s "http://localhost:9000/2015-03-31/functions/function/invocations" -d '{}'
-```
-
-To exercise the API handler instead, append `morning_brief.aws_handlers.api_handler`
-to the `docker run` command (overriding the default `CMD`) and POST an API Gateway
-HTTP API v2 event to the same invocations URL.
-
-## Testing & quality gate
-
-Every check below must pass before a commit is considered ready:
-
-```bash
-uv run ruff check src/ tests/          # lint
-uv run ruff format src/ tests/ --check # format
-uv run mypy src/ tests/                # type check
-uv run pyright                         # second, stricter type check
-uv run pytest                          # tests
-uv run pip-audit                       # dependency vulnerabilities (needs network)
-```
-
-## Project structure
-
-```
-src/morning_brief/
-├── core/            # Domain: models, interfaces, exceptions. Pure Python, no I/O.
-├── config/          # Settings (Pydantic Settings, YAML + env)
-├── prompts/         # Prompt registry, builder, validator + versioned YAML templates
-├── guardrails/      # Input, output, and delivery guardrails
-├── infrastructure/  # Concrete implementations + mocks (data, llm, delivery, storage, rendering)
-├── application/     # Pipeline orchestrator + composition root (the only place that wires concretes)
-├── api/             # FastAPI app — the only layer that knows HTTP
-└── observability/   # Logging and timing
-
-config/              # default.yaml + environments/{development,production,test}.yaml
-tests/               # unit (mirrors src), integration, fixtures
-docs/                # architecture and design notes
-```
-
-## Deployment
-
-Production runs on AWS, all-serverless: EventBridge Scheduler invokes the batch
-Lambda (this repo's container image) at 07:00 Europe/London on weekdays; secrets load
-from SSM Parameter Store at cold start; every run writes an immutable record to the
-S3 Object Lock audit bucket; CloudWatch alarms notify via SNS if a run fails or goes
-missing. Deploys are owned by the GitHub Actions pipeline: merge to `main` → quality
-gate → image build → ECR push → Lambda roll → rollout verification.
-
-- **Deploying from scratch:** [docs/deployment-runbook.md](docs/deployment-runbook.md)
-  — the full zero-to-production guide with per-step verification.
-- **Terraform layout and commands:** [infra/README.md](infra/README.md).
-- **Decisions and trade-offs:** [docs/adr/0001-deployment.md](docs/adr/0001-deployment.md).
-- **TLS and ingress rate limiting** apply to the (deferred) HTTP API surface. See
-  [docs/security.md](docs/security.md) for the full set of required controls.
-
-Running it outside AWS remains supported — the pipeline is plain Python behind
-interfaces: point any scheduler at `morning-brief run` and choose the audit backend
-via configuration.
-
-## Documentation
-
-- [docs/architecture.md](docs/architecture.md) — how the system is built and why.
-- [docs/deployment-runbook.md](docs/deployment-runbook.md) — zero-to-production
-  deployment, verified step by step.
-- [docs/deployment-learning-guide.md](docs/deployment-learning-guide.md) — the
-  concepts behind the deployment (cloud, IAM, OIDC, Terraform) from first principles.
-- [docs/adr/0001-deployment.md](docs/adr/0001-deployment.md) — the deployment
-  architecture decision record.
-- [docs/reusability-and-the-fde-role.md](docs/reusability-and-the-fde-role.md) —
-  the reuse model behind the design.
-- [docs/security.md](docs/security.md) — security posture and deployment controls.
+- TLDR is currently the only news source. With multiple sources configured, a failed
+  source is logged and skipped; the run fails if none provides usable stories.
+- An unavailable original article falls back to its newsletter summary.
+- Structure and citation checks do not establish that every explanation is correct.
+- The AI brief keeps no delivery history, so reruns can repeat stories or emails.
