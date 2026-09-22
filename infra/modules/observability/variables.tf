@@ -1,5 +1,5 @@
 variable "name_prefix" {
-  description = "Prefix for topic/alarm names (e.g. \"morning-brief-prod\")."
+  description = "Prefix for topic/alarm names (e.g. \"morning-brief\")."
   type        = string
 }
 
@@ -30,20 +30,14 @@ variable "alert_email" {
   default     = ""
 }
 
-variable "slack_channel_id" {
-  description = "Slack channel id for Chatbot alerts; empty disables Slack."
-  type        = string
-  default     = ""
+variable "missed_run_hours" {
+  description = "Consecutive hourly periods without a healthy completed run before alerting."
+  type        = number
+  default     = 74
 }
 
-variable "slack_team_id" {
-  description = "Slack workspace/team id (from the one-time Chatbot console authorization)."
-  type        = string
-  default     = ""
-}
-
-variable "tags" {
-  description = "Tags applied to the alerting resources."
-  type        = map(string)
-  default     = {}
+variable "schedule_enabled" {
+  description = "Disable missing-run notifications while the schedule is intentionally paused."
+  type        = bool
+  default     = false
 }

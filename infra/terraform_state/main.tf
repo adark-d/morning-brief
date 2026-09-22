@@ -1,16 +1,9 @@
-# Remote-state backend for the prod root module.
-#
-# Chicken-and-egg: the bucket that holds Terraform state must exist
-# before any config can use `backend "s3"`. This root is therefore applied ONCE with
-# local state (no backend block), creating the backend that envs/prod then points at.
-# Locking is S3-native (`use_lockfile` in the prod backend config) — no lock table.
-# It is small and rarely changes; keep its own state file (terraform.tfstate) in the repo
-# working copy or a safe location — it only describes the backend itself.
+# Create the Terraform state bucket once, before deploying the main infrastructure.
 
 resource "aws_s3_bucket" "state" {
   bucket = var.state_bucket_name
 
-  # The state bucket holds the source of truth for all infra; never auto-destroy it.
+  # Protect Terraform state from accidental deletion.
   lifecycle {
     prevent_destroy = true
   }

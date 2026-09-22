@@ -1,5 +1,5 @@
 variable "name_prefix" {
-  description = "Prefix for the schedule name (e.g. \"morning-brief-prod\")."
+  description = "Prefix for the schedule name (e.g. \"morning-brief\")."
   type        = string
 }
 
@@ -35,19 +35,19 @@ variable "architecture" {
 }
 
 variable "memory_size" {
-  description = "Lambda memory (MB). pandas/numpy are memory-hungry; tune from CloudWatch max-memory-used."
+  description = "Lambda memory (MB). Tune from CloudWatch max-memory-used."
   type        = number
   default     = 1024
 }
 
 variable "timeout_seconds" {
-  description = "Lambda timeout (s). Covers data fetch + LLM call (~30-60s) with headroom."
+  description = "Lambda timeout (s). Must exceed the application deadline plus startup headroom."
   type        = number
-  default     = 180
+  default     = 480
 }
 
 variable "environment_variables" {
-  description = "Non-secret env vars (ENVIRONMENT, audit bucket/region/kms). Secrets are injected from SSM at cold start."
+  description = "Non-secret runtime settings. Secrets are loaded from SSM."
   type        = map(string)
 }
 
@@ -69,8 +69,20 @@ variable "log_retention_days" {
   default     = 90
 }
 
-variable "tags" {
-  description = "Tags applied to the function, queue, and log group."
-  type        = map(string)
-  default     = {}
+variable "handler" {
+  description = "Python Lambda handler for the scheduled workflow."
+  type        = string
+  default     = "ai_brief.handler.run_handler"
+}
+
+variable "schedule_enabled" {
+  description = "Whether the schedule can invoke the function."
+  type        = bool
+  default     = false
+}
+
+variable "completion_check_schedule" {
+  description = "Run after each expected brief to detect a missed completion."
+  type        = string
+  default     = "cron(0 8 ? * MON-FRI *)"
 }

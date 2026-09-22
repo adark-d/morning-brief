@@ -1,12 +1,7 @@
-variable "project" {
-  description = "Project segment of the SSM path (e.g. \"morning-brief\")."
+variable "path_prefix" {
+  description = "Absolute runtime SSM path without a trailing slash."
   type        = string
-  default     = "morning-brief"
-}
-
-variable "environment" {
-  description = "Environment segment of the SSM path (e.g. \"production\"). bootstrap_secrets reads /<project>/<environment>/."
-  type        = string
+  default     = "/morning-brief"
 }
 
 variable "secret_names" {
@@ -17,10 +12,4 @@ variable "secret_names" {
 variable "kms_key_id" {
   description = "Customer-managed KMS key id/ARN used to encrypt the SecureString values."
   type        = string
-}
-
-variable "tags" {
-  description = "Tags applied to each parameter."
-  type        = map(string)
-  default     = {}
 }

@@ -1,8 +1,6 @@
-# ECR repository for the single container image used by the batch (and later API) function.
-
 resource "aws_ecr_repository" "this" {
   name                 = var.repository_name
-  image_tag_mutability = "IMMUTABLE" # tags never move; deploys reference an immutable digest/tag
+  image_tag_mutability = "IMMUTABLE" # Prevent image tags from being overwritten.
 
   image_scanning_configuration {
     scan_on_push = true
@@ -12,11 +10,9 @@ resource "aws_ecr_repository" "this" {
     encryption_type = "KMS"
     kms_key         = var.kms_key_arn
   }
-
-  tags = var.tags
 }
 
-# Keep storage bounded: retain the most recent images, expire older ones.
+# Expire older images to limit storage.
 resource "aws_ecr_lifecycle_policy" "this" {
   repository = aws_ecr_repository.this.name
   policy = jsonencode({

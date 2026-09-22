@@ -1,15 +1,7 @@
-# SSM Parameter Store SecureString parameters for the runtime secrets.
-#
-# Terraform owns the parameter *resources* (name, type, KMS key); a human owns the
-# *values*. Each parameter is created with a placeholder and `ignore_changes = [value]`
-# so real secret values are set out-of-band (`aws ssm put-parameter --overwrite ...`)
-# and NEVER enter Terraform state.
-#
-# Parameter basename == the exact MORNING_BRIEF_* env var name, so bootstrap_secrets()
-# injects each by identity at Lambda cold start.
+# Create placeholders; set real secret values in SSM.
 
 locals {
-  path = "/${var.project}/${var.environment}"
+  path = var.path_prefix
 }
 
 resource "aws_ssm_parameter" "secret" {
@@ -20,9 +12,8 @@ resource "aws_ssm_parameter" "secret" {
   key_id = var.kms_key_id
   value  = "PLACEHOLDER_SET_OUT_OF_BAND"
 
+  # Prevent value overwrites; decrypted secrets can still enter Terraform state.
   lifecycle {
     ignore_changes = [value]
   }
-
-  tags = var.tags
 }

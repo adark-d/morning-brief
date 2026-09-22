@@ -1,5 +1,5 @@
 variable "name_prefix" {
-  description = "Prefix for role names (e.g. \"morning-brief-prod\")."
+  description = "Prefix for role names (e.g. \"morning-brief\")."
   type        = string
 }
 
@@ -13,29 +13,12 @@ variable "dlq_name" {
   type        = string
 }
 
-variable "audit_bucket_arn" {
-  description = "Audit S3 bucket ARN."
-  type        = string
-}
-
-variable "audit_prefix" {
-  description = "Key prefix under which run records live (scopes s3:PutObject/GetObject)."
-  type        = string
-  default     = "runs"
-}
-
 variable "kms_key_arn" {
-  description = "Customer-managed KMS key ARN (audit SSE-KMS + SSM SecureString)."
+  description = "Customer-managed KMS key ARN for SSM decryption."
   type        = string
 }
 
 variable "ssm_path" {
-  description = "SSM path prefix for secrets, e.g. /morning-brief/production (no trailing slash)."
+  description = "SSM path prefix for secrets, e.g. /morning-brief (no trailing slash)."
   type        = string
-}
-
-variable "tags" {
-  description = "Tags applied to the roles."
-  type        = map(string)
-  default     = {}
 }

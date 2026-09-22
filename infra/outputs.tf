@@ -3,11 +3,6 @@ output "ecr_repository_url" {
   value       = module.ecr.repository_url
 }
 
-output "audit_bucket_name" {
-  description = "Immutable audit bucket."
-  value       = module.audit_s3.bucket_name
-}
-
 output "batch_function_name" {
   description = "Scheduled-brief Lambda function name (for manual invoke / CI deploy)."
   value       = module.batch_lambda.function_name

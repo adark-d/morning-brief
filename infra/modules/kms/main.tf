@@ -1,16 +1,13 @@
-# Customer-managed KMS key for the audit bucket (SSE-KMS) and the SSM SecureString
-# secrets. One key keeps the blast radius and key-policy surface small; rotation is on.
+# Shared encryption key for container images and runtime secrets.
 
 data "aws_caller_identity" "current" {}
 
 resource "aws_kms_key" "this" {
-  description             = "${var.name_prefix} audit + secrets encryption"
+  description             = "${var.name_prefix} container and secrets encryption"
   enable_key_rotation     = true
   deletion_window_in_days = 30
 
-  # Key policy: the account root retains admin (so the key is never orphaned); the
-  # batch role is granted data-plane use through IAM policies, not here, to keep the
-  # key policy stable as roles change.
+  # Keep account administration here and grant runtime access through IAM.
   policy = jsonencode({
     Version = "2012-10-17"
     Statement = [{
@@ -21,8 +18,6 @@ resource "aws_kms_key" "this" {
       Resource  = "*"
     }]
   })
-
-  tags = var.tags
 }
 
 resource "aws_kms_alias" "this" {

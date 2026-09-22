@@ -14,11 +14,6 @@ output "log_group_name" {
 }
 
 output "dlq_name" {
-  description = "SQS DLQ name (for the retries-exhausted alarm)."
+  description = "SQS DLQ name (for the failure-queue alarm)."
   value       = aws_sqs_queue.dlq.name
-}
-
-output "dlq_arn" {
-  description = "SQS DLQ ARN."
-  value       = aws_sqs_queue.dlq.arn
 }

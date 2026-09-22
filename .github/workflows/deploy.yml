@@ -1,51 +1,54 @@
 name: Deploy (batch Lambda)
 
-# Builds the container image, pushes it to ECR, and rolls the batch Lambda to it.
-# Auth is GitHub OIDC (no stored keys) via the role from infra/modules/cicd.
-#
-# Needs the `production` GitHub environment (deployment branches: main only) and the
-# repository variables AWS_REGION, AWS_DEPLOY_ROLE_ARN, ECR_REPOSITORY, LAMBDA_FUNCTION
-# (the last three are Terraform outputs — see docs/deployment-runbook.md).
-#
-# Rollback: revert the commit on main; this workflow redeploys it.
-
 on:
   workflow_dispatch:
   push:
     branches: [main]
     paths:
       - "src/**"
-      - "config/**"
       - "pyproject.toml"
       - "uv.lock"
       - "Dockerfile"
       - ".dockerignore"
+      - ".github/workflows/deploy.yml"
+      - ".github/workflows/gate.yml"
 
 concurrency:
-  group: deploy-prod
-  cancel-in-progress: false # never cancel a deploy mid-roll
+  group: deploy
+  cancel-in-progress: false
 
 permissions:
   contents: read
 
 jobs:
-  # Same gate as CI — a deploy certifies the exact commit it ships, on any trigger.
-  # Skipped (along with the dependent deploy) until the first terraform apply sets
-  # AWS_DEPLOY_ROLE_ARN, so pre-infrastructure pushes no-op instead of failing.
   gate:
-    if: ${{ vars.AWS_DEPLOY_ROLE_ARN != '' }}
+    if: github.ref == 'refs/heads/main'
     uses: ./.github/workflows/gate.yml
 
   deploy:
     needs: gate
+    if: ${{ github.event_name == 'workflow_dispatch' || vars.AWS_DEPLOY_ROLE_ARN != '' }}
     runs-on: ubuntu-latest
-    timeout-minutes: 30 # emulated arm64 builds are slow
-    environment: production
+    timeout-minutes: 30
     permissions:
-      id-token: write # mint the OIDC token
+      id-token: write
       contents: read
     steps:
       - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+
+      - name: Check deployment settings
+        env:
+          AWS_REGION: ${{ vars.AWS_REGION }}
+          AWS_DEPLOY_ROLE_ARN: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          ECR_REPOSITORY: ${{ vars.ECR_REPOSITORY }}
+          LAMBDA_FUNCTION: ${{ vars.LAMBDA_FUNCTION }}
+        run: |
+          for variable in AWS_REGION AWS_DEPLOY_ROLE_ARN ECR_REPOSITORY LAMBDA_FUNCTION; do
+            if [[ -z "${!variable}" ]]; then
+              echo "::error::Missing GitHub variable: $variable"
+              exit 1
+            fi
+          done
 
       - name: Configure AWS credentials (OIDC)
         uses: aws-actions/configure-aws-credentials@e7f100cf4c008499ea8adda475de1042d6975c7b # v6.2.0
@@ -56,8 +59,6 @@ jobs:
       - name: Log in to Amazon ECR
         uses: aws-actions/amazon-ecr-login@fa648b43de3d4d023bcb3f89ed6940096949c419 # v2.1.5
 
-      # Tags are immutable and builds aren't reproducible — re-pushing a commit would
-      # be rejected, so skip the build and roll the existing image instead.
       - name: Check for an existing image for this commit
         id: image
         env:
@@ -76,7 +77,6 @@ jobs:
             exit 1
           fi
 
-      # The Lambda function is arm64 (Graviton); build for that platform.
       - uses: docker/setup-qemu-action@06116385d9baf250c9f4dcb4858b16962ea869c3 # v4.1.0
         if: steps.image.outputs.exists == 'false'
       - uses: docker/setup-buildx-action@d7f5e7f509e45cec5c76c4d5afdd7de93d0b3df5 # v4.1.0
@@ -88,11 +88,10 @@ jobs:
         with:
           context: .
           platforms: linux/arm64
-          provenance: false # ECR rejects the OCI attestation manifest by default
+          provenance: false # Required for Lambda container images.
           push: true
           tags: ${{ vars.ECR_REPOSITORY }}:${{ github.sha }}
 
-      # No --publish: the scheduler invokes $LATEST; versions would be dead weight.
       - name: Roll the Lambda to the new image
         env:
           FUNCTION_NAME: ${{ vars.LAMBDA_FUNCTION }}
@@ -102,8 +101,6 @@ jobs:
             --function-name "$FUNCTION_NAME" \
             --image-uri "$IMAGE_URI"
 
-      # update-function-code is async and can fail after returning — the deploy is
-      # not done until the rollout reports Successful.
       - name: Verify the rollout
         env:
           FUNCTION_NAME: ${{ vars.LAMBDA_FUNCTION }}

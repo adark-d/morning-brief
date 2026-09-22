@@ -1,5 +1,5 @@
 variable "name_prefix" {
-  description = "Prefix for the deploy role name (e.g. \"morning-brief-prod\")."
+  description = "Prefix for the deploy role name (e.g. \"morning-brief\")."
   type        = string
 }
 
@@ -11,12 +11,6 @@ variable "github_owner" {
 variable "github_repo" {
   description = "GitHub repository name."
   type        = string
-}
-
-variable "github_environment" {
-  description = "GitHub Actions environment whose OIDC tokens may assume the deploy role."
-  type        = string
-  default     = "production"
 }
 
 variable "create_oidc_provider" {
@@ -39,10 +33,4 @@ variable "ecr_repository_arn" {
 variable "lambda_function_arn" {
   description = "Lambda function ARN the deploy role may update."
   type        = string
-}
-
-variable "tags" {
-  description = "Tags applied to the deploy role."
-  type        = map(string)
-  default     = {}
 }
