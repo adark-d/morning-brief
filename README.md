@@ -38,93 +38,47 @@ the email. The prompt asks for concise explanations based on the supplied source
 Run it manually from your terminal or schedule it on AWS Lambda. The default AWS
 schedule is **weekdays at 07:00, Europe/London**.
 
+## Project structure
+
+```text
+morning-brief/
+├── .github/workflows/   # CI checks and deployment
+├── src/
+│   ├── ai_brief/         # News sources, analysis, validation, and email pipeline
+│   └── brief_core/       # Settings, HTTP, model routing, SMTP, logging, and AWS utilities
+├── scripts/
+│   └── run_ai_brief.py   # Command-line entry point
+├── config/              # Local settings and example template
+├── infra/               # Terraform configuration and AWS setup guide
+├── tests/               # Tests with mocked external services
+├── Dockerfile           # Lambda container image
+├── pyproject.toml       # Dependencies and tooling configuration
+└── SETUP.md             # Local setup guide
+```
+
 ## Run locally
 
-You need Python 3.13+, [uv](https://github.com/astral-sh/uv), and an Anthropic API key.
-SMTP credentials are needed only when sending email.
-
-### 1. Install and configure
-
-From the repository root:
-
-```bash
-uv sync --frozen
-cp config/.env.example config/.env
-```
-
-Copy the template only if you do not already have `config/.env`. Set your API key
-and the Claude models used for each task:
-
-```dotenv
-MORNING_BRIEF_ANTHROPIC_API_KEY=your-key
-MORNING_BRIEF_SELECTION_MODEL=claude-haiku-4-5
-MORNING_BRIEF_EXPLANATION_MODEL=claude-sonnet-4-5-20250929
-```
-
-Haiku selects topics and Sonnet writes the explanations. These names are configurable;
-both tasks call Anthropic directly. Keep real credentials out of Git.
-
-If `ANTHROPIC_API_KEY` is already exported in your environment, you can leave the
-key out of `config/.env`. Environment values take precedence over the file.
-
-### 2. Preview the brief
-
-```bash
-uv run brief
-```
-
-This fetches live news, calls the models, and prints the email HTML to your terminal.
-Logs go to stderr, so `uv run brief > brief.html` saves a clean preview.
-It does not send email. Model calls may incur usage charges.
-
-### 3. Send by email
-
-Set the sender, recipients, SMTP host, and credentials in `config/.env`, then run:
-
-```bash
-uv run brief --send
-```
-
-Use [`config/.env.example`](config/.env.example) for available settings, including
-interests, topic count, model budgets, and timeouts. Environment variables override
-values in the file. On Lambda, SSM supplies fresh values on each invocation;
-explicit environment values take precedence. Omitted settings use the defaults in
-[`settings.py`](src/brief_core/settings.py).
-
-## Project layout
-
-| Location | Purpose |
-|---|---|
-| `src/ai_brief/` | News sources, prompts, analysis, validation, email template, and pipeline. |
-| `src/brief_core/` | Shared settings, HTTP, model routing, SMTP, logging, and AWS utilities. |
-| `scripts/run_ai_brief.py` | Command-line entry point for manual runs. |
-| `config/` | Local settings and their example template. |
-| `infra/` | Terraform configuration and AWS deployment instructions. |
-| `tests/` | Brief behaviour and workflow tests using mocked external services. |
+Follow the [local setup guide](SETUP.md) to configure, preview, and send your briefing.
 
 ## Deploy to AWS
 
-EventBridge Scheduler invokes Lambda. SSM supplies credentials, CloudWatch records
-logs, and email alerts report failed or missed runs. A weekday check at 08:00
-looks for a healthy completion within the previous two hours. GitHub Actions deploys image
-updates; Terraform manages infrastructure separately.
+GitHub Actions deploys the container image; Terraform manages the AWS resources.
+
+| AWS service | Resources and purpose |
+|---|---|
+| Lambda | Runs the briefing pipeline and completion check. |
+| EventBridge Scheduler | Starts the weekday briefing at 07:00 and checks completion at 08:00, London time, by default. |
+| ECR | Stores container images, with cleanup of older versions. |
+| Systems Manager Parameter Store | Stores API credentials, SMTP credentials, and recipient addresses. |
+| KMS | Encrypts stored secrets and container images. |
+| IAM | Controls access for Lambda, Scheduler, and GitHub deployments through OIDC. |
+| CloudWatch | Stores logs, counts healthy completions, and monitors errors, queued failures, and missing runs. |
+| SNS | Sends alarm notifications to the subscribed email address. |
+| SQS | Retains failed invocation records for investigation. |
+| S3 | Stores Terraform state in a private, encrypted, versioned bucket. |
 
 Start with the [infrastructure overview](infra/README.md), then follow the
 [setup guide](infra/SETUP.md). Scheduling stays disabled until explicitly enabled.
-
-## Development
-
-The committed tests focus on story parsing, lesson rules, email content, and pipeline
-outcomes. Use temporary regression checks for plumbing changes rather than adding
-permanent tests for every configuration or SDK wrapper.
-
-```bash
-uv run ruff check src/ scripts/ tests/
-uv run ruff format src/ scripts/ tests/ --check
-uv run mypy src/ scripts/ tests/
-uv run pyright
-uv run pytest
-```
 
 ## Limits to keep in mind
 
